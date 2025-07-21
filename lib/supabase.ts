@@ -32,133 +32,73 @@ export interface ExpenseUser {
   single_transaction_limit: number
   profile_picture_url?: string
   is_active: boolean
-  created_at: string
-  updated_at: string
 }
 
-export interface ExpenseSubmission {
-  id: string
-  submission_number: string
-  user_id: string
-  expense_type: 'travel' | 'maintenance' | 'requisition'
-  status: 'draft' | 'submitted' | 'pending_manager' | 'pending_finance' | 'approved' | 'rejected' | 'cancelled'
-  total_amount: number
-  business_purpose: string
-  submission_date?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface TransportationExpense {
-  id: string
-  submission_id: string
-  transport_method: 'van' | 'rickshaw' | 'boat' | 'cng' | 'train' | 'plane' | 'launch' | 'ferry' | 'bike' | 'car'
-  vehicle_ownership: 'own' | 'rental' | 'public'
-  vehicle_model?: string
-  license_plate?: string
-  start_location: string
-  start_coordinates?: any
-  end_location: string
-  end_coordinates?: any
-  departure_datetime: string
-  return_datetime?: string
-  is_round_trip: boolean
-  start_odometer?: number
-  end_odometer?: number
-  distance_km?: number
-  base_cost: number
-  fuel_cost: number
-  toll_charges: number
-  total_cost: number
-  created_at: string
-}
-
-export interface FoodAccommodationExpense {
-  id: string
-  submission_id: string
-  expense_date: string
-  meal_types: ('breakfast' | 'lunch' | 'dinner' | 'snacks')[]
-  hotel_name?: string
-  hotel_location?: string
-  check_in_date?: string
-  check_out_date?: string
-  nights_count: number
-  food_cost: number
-  accommodation_cost: number
-  total_cost: number
-  created_at: string
-}
-
-export interface MaintenanceExpense {
-  id: string
-  submission_id: string
-  category: 'charges' | 'purchases' | 'repairs'
-  subcategory: string
-  vehicle_type?: string
-  vehicle_model?: string
-  service_purpose: string
-  service_date: string
-  duration_months: number
-  contractor_details?: string
-  equipment_purchased: boolean
-  total_cost: number
-  created_at: string
-}
-
-export interface ExpenseAttachment {
-  id: string
-  submission_id: string
-  file_name: string
-  file_path: string
-  file_type: string
-  file_size: number
-  description?: string
-  uploaded_at: string
-}
-
-export interface ExpenseApproval {
-  id: string
-  submission_id: string
-  approver_id: string
-  approval_level: number
-  action?: 'approve' | 'reject' | 'request_changes'
-  comments?: string
-  approved_at?: string
-  created_at: string
+// Hardcoded test user
+const TEST_USER: ExpenseUser = {
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  email: 'test@example.com',
+  full_name: 'Test User',
+  employee_id: 'EMP-2024-001',
+  role: 'manager',
+  department: 'Engineering',
+  monthly_budget: 50000,
+  single_transaction_limit: 10000,
+  is_active: true
 }
 
 // Auth helper functions
 export const signInWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-  return { data, error }
+  // For testing: accept any email with password "123"
+  if (password === '123') {
+    // Create a fake session
+    const fakeSession = {
+      user: {
+        id: TEST_USER.id,
+        email: email || TEST_USER.email,
+        user_metadata: {
+          full_name: TEST_USER.full_name
+        }
+      },
+      access_token: 'fake_token'
+    }
+
+    // Store the fake session
+    await supabase.auth.setSession(fakeSession as any)
+    return { data: fakeSession, error: null }
+  }
+
+  // For non-test cases, use actual Supabase auth
+  return supabase.auth.signInWithPassword({ email, password })
 }
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  return supabase.auth.signOut()
 }
 
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.user
 }
 
 // Database helper functions
 export const getUserProfile = async (userId: string): Promise<ExpenseUser | null> => {
+  // For testing: return hardcoded user
+  if (userId === TEST_USER.id) {
+    return TEST_USER
+  }
+
   const { data, error } = await supabase
     .from('expense_users')
     .select('*')
     .eq('id', userId)
     .single()
-  
+
   if (error) {
     console.error('Error fetching user profile:', error)
     return null
   }
-  
+
   return data
 }
 
@@ -167,42 +107,50 @@ export const getUserSubmissions = async (userId: string) => {
     .from('expense_submissions')
     .select(`
       *,
-      transportation_expenses(*),
-      food_accommodation_expenses(*),
+      travel_expenses(*),
       maintenance_expenses(*),
-      requisition_expenses(*),
-      expense_attachments(*)
+      requisition_expenses(*)
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-  
+
   if (error) {
-    console.error('Error fetching submissions:', error)
+    console.error('Error fetching user submissions:', error)
     return []
   }
-  
-  return data || []
+
+  return data
 }
 
-export const createExpenseSubmission = async (submission: Partial<ExpenseSubmission>) => {
+export const createExpenseSubmission = async (submission: any) => {
   const { data, error } = await supabase
     .from('expense_submissions')
-    .insert([submission])
+    .insert(submission)
     .select()
     .single()
-  
-  return { data, error }
+
+  if (error) {
+    console.error('Error creating expense submission:', error)
+    return null
+  }
+
+  return data
 }
 
-export const updateExpenseSubmission = async (id: string, updates: Partial<ExpenseSubmission>) => {
+export const updateExpenseSubmission = async (id: string, updates: any) => {
   const { data, error } = await supabase
     .from('expense_submissions')
     .update(updates)
     .eq('id', id)
     .select()
     .single()
-  
-  return { data, error }
+
+  if (error) {
+    console.error('Error updating expense submission:', error)
+    return null
+  }
+
+  return data
 }
 
 // File upload helper
@@ -210,14 +158,19 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
   const { data, error } = await supabase.storage
     .from(bucket)
     .upload(path, file)
-  
-  return { data, error }
+
+  if (error) {
+    console.error('Error uploading file:', error)
+    return null
+  }
+
+  return data
 }
 
 export const getPublicUrl = (bucket: string, path: string) => {
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(path)
-  
+
   return data.publicUrl
 } 
