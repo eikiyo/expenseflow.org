@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './providers/auth-provider'
 import { LoadingSpinner } from './components/ui/loading-spinner'
+import { LoginForm } from './components/auth/login-form'
 import { ExpenseTypeSelection } from './components/expense/expense-type-selection'
 import { TravelFlow } from './components/expense/travel-flow'
 import { MaintenanceFlow } from './components/expense/maintenance-flow'
@@ -44,8 +45,6 @@ export default function ExpenseSubmissionPlatform() {
   const { user: authUser, userProfile, loading, signOut } = useAuth()
   const [currentView, setCurrentView] = useState('dashboard');
   const [user, setUser] = useState<AppUser | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: '', password: '', rememberMe: false });
   const [expenseType, setExpenseType] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [collapsedCards, setCollapsedCards] = useState({});
@@ -102,84 +101,7 @@ export default function ExpenseSubmissionPlatform() {
 
   // Show login if not authenticated
   if (!authUser || !userProfile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-white to-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-semibold text-gray-900">Welcome Back</h1>
-              <p className="text-gray-600 mt-2">Sign in to your expense account</p>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="Enter your email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="form-input pr-12"
-                    placeholder="Enter your password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox"
-                    checked={loginForm.rememberMe}
-                    onChange={(e) => setLoginForm({...loginForm, rememberMe: e.target.checked})}
-                  />
-                  <span className="ml-2 text-sm text-gray-600">Remember me</span>
-                </label>
-                <a href="#" className="text-sm text-blue-600 hover:text-blue-500">Forgot password?</a>
-              </div>
-              
-              <button
-                onClick={() => {
-                  // For demo purposes, we'll simulate login
-                  setUser(mockUser);
-                  setCurrentView('dashboard');
-                }}
-                className="btn-primary w-full"
-              >
-                Sign In
-              </button>
-              
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  Demo: Click Sign In to continue
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoginForm />
   }
 
   // Handle different views
@@ -446,7 +368,6 @@ export default function ExpenseSubmissionPlatform() {
                 </div>
               </div>
             </div>
-          </div>
         )
     }
   }
