@@ -5,21 +5,23 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import Image from 'next/image'
+import { DollarSign } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [logoError, setLogoError] = useState(false)
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
     setError('')
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -29,9 +31,13 @@ export function LoginForm() {
 
       if (error) {
         setError(error.message)
+        console.error('OAuth error:', error)
+      } else {
+        console.log('OAuth initiated successfully:', data)
       }
     } catch (err) {
       setError('An unexpected error occurred')
+      console.error('Unexpected error:', err)
     } finally {
       setLoading(false)
     }
@@ -43,12 +49,17 @@ export function LoginForm() {
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Image 
-                src="/logo.svg" 
-                alt="ExpenseFlow Logo" 
-                width={40} 
-                height={40}
-              />
+              {!logoError ? (
+                <Image 
+                  src="/logo.svg" 
+                  alt="ExpenseFlow Logo" 
+                  width={40} 
+                  height={40}
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <DollarSign className="w-8 h-8 text-white" />
+              )}
             </div>
             <h1 className="text-2xl font-semibold text-gray-900">Welcome to ExpenseFlow</h1>
             <p className="text-gray-600 mt-2">Sign in to manage your expenses</p>

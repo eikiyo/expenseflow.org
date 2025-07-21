@@ -51,6 +51,7 @@ export default function ExpenseSubmissionPlatform() {
   const [collapsedCards, setCollapsedCards] = useState({});
   const [skippedSections, setSkippedSections] = useState({});
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const [formData, setFormData] = useState({
     transportation: {},
     route: {},
@@ -145,12 +146,17 @@ export default function ExpenseSubmissionPlatform() {
                 <div className="px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                      <Image 
-                        src="/logo.svg" 
-                        alt="ExpenseFlow Logo" 
-                        width={24} 
-                        height={24}
-                      />
+                      {!logoError ? (
+                        <Image 
+                          src="/logo.svg" 
+                          alt="ExpenseFlow Logo" 
+                          width={24} 
+                          height={24}
+                          onError={() => setLogoError(true)}
+                        />
+                      ) : (
+                        <DollarSign className="w-6 h-6 text-white" />
+                      )}
                     </div>
                     <h1 className="text-xl font-semibold text-gray-900">ExpenseFlow</h1>
                   </div>
