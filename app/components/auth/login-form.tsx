@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import Image from 'next/image'
 import { DollarSign } from 'lucide-react'
 
 export function LoginForm() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [logoError, setLogoError] = useState(false)
