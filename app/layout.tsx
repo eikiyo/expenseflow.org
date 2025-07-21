@@ -1,4 +1,5 @@
-import type { Metadata } from 'next'
+'use client'
+
 import { Inter } from 'next/font/google'
 import { AuthProvider } from './providers/auth-provider'
 import { Toaster } from 'react-hot-toast'
@@ -6,10 +7,14 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'ExpenseFlow - Travel & Petty Expense Management',
   description: 'Comprehensive expense management platform for travel, maintenance, and requisition expenses',
-  viewport: 'width=device-width, initial-scale=1',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: '#2563eb',
 }
 
@@ -25,7 +30,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-gray-50">
             {children}
           </div>
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
