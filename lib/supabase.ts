@@ -83,31 +83,45 @@ export const getUserProfile = async (userId: string): Promise<ExpenseUser | null
 }
 
 export const createUserProfile = async (user: any): Promise<ExpenseUser | null> => {
-  // Create user profile from Google OAuth data
-  const userProfile = {
-    id: user.id,
-    email: user.email,
-    full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown User',
-    employee_id: `EMP-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-    role: 'employee' as const,
-    monthly_budget: 5000,
-    single_transaction_limit: 1000,
-    profile_picture_url: user.user_metadata?.avatar_url,
-    is_active: true
-  }
+  try {
+    // First check if profile already exists
+    const { data: existingProfile } = await supabase
+      .rpc('user_profile_exists', { user_id: user.id })
 
-  const { data, error } = await supabase
-    .from('expense_users')
-    .insert(userProfile)
-    .select()
-    .single()
+    if (existingProfile) {
+      console.log('User profile already exists:', user.email)
+      return getUserProfile(user.id)
+    }
 
-  if (error) {
-    console.error('Error creating user profile:', error)
+    // Create user profile from Google OAuth data
+    const userProfile = {
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown User',
+      employee_id: `EMP-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      role: 'employee' as const,
+      monthly_budget: 5000,
+      single_transaction_limit: 1000,
+      profile_picture_url: user.user_metadata?.avatar_url,
+      is_active: true
+    }
+
+    const { data, error } = await supabase
+      .from('expense_users')
+      .insert(userProfile)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating user profile:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in createUserProfile:', error)
     return null
   }
-
-  return data
 }
 
 export const getUserSubmissions = async (userId: string) => {
