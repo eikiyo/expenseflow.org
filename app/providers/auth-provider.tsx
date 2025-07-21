@@ -53,7 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If no profile exists, create one from Google OAuth data
       if (!profile) {
         console.log('Creating new user profile for:', session.user.email)
-        profile = await createUserProfile(session.user)
+        try {
+          profile = await createUserProfile(session.user)
+          if (!profile) {
+            console.error('Failed to create user profile - RLS policy issue')
+            // Don't set userProfile to null here to prevent infinite loop
+            return
+          }
+        } catch (error) {
+          console.error('Error creating user profile:', error)
+          // Don't set userProfile to null here to prevent infinite loop
+          return
+        }
       }
       
       setUserProfile(profile)

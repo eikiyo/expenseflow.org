@@ -31,21 +31,27 @@ USING (
   )
 );
 
+-- Users can insert their own profile (for OAuth signup)
+CREATE POLICY "Users can insert own profile"
+ON expense_users FOR INSERT
+WITH CHECK (auth.uid()::text = id::text);
+
 -- Users can update their own profile (limited fields)
 CREATE POLICY "Users can update own profile"
 ON expense_users FOR UPDATE
 USING (auth.uid()::text = id::text)
 WITH CHECK (auth.uid()::text = id::text);
 
--- Only admins can insert/delete users
-CREATE POLICY "Admins can manage users"
-ON expense_users FOR ALL
+-- Only admins can delete users (but not themselves)
+CREATE POLICY "Admins can delete other users"
+ON expense_users FOR DELETE
 USING (
   EXISTS (
     SELECT 1 FROM expense_users
     WHERE id::text = auth.uid()::text
     AND role = 'admin'
   )
+  AND id::text != auth.uid()::text
 );
 
 -- User Vehicles Policies
