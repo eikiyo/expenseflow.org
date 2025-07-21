@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import Image from 'next/image'
-import { DollarSign } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
@@ -20,7 +19,7 @@ export function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -44,7 +43,12 @@ export function LoginForm() {
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <DollarSign className="w-8 h-8 text-white" />
+              <Image 
+                src="/logo.svg" 
+                alt="ExpenseFlow Logo" 
+                width={40} 
+                height={40}
+              />
             </div>
             <h1 className="text-2xl font-semibold text-gray-900">Welcome to ExpenseFlow</h1>
             <p className="text-gray-600 mt-2">Sign in to manage your expenses</p>

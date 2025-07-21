@@ -2,33 +2,44 @@
 
 import React, { useState } from 'react'
 import { ArrowLeft, Camera, Car, Edit, Lock, Mail, Phone, User } from 'lucide-react'
+import { useAuth } from '@/app/providers/auth-provider'
+import { LoadingSpinner } from '../ui/loading-spinner'
 
 interface UserProfileProps {
   onBack: () => void
 }
 
 export function UserProfile({ onBack }: UserProfileProps) {
+  const { userProfile, loading, error } = useAuth()
   const [activeTab, setActiveTab] = useState('personal')
   const [editMode, setEditMode] = useState(false)
 
-  // Example user data - replace with actual data from API
-  const [userData, setUserData] = useState({
-    fullName: 'Sarah Chen',
-    email: 'sarah.chen@company.com',
-    employeeId: 'EMP-2024-001',
-    department: 'Sales & Marketing',
-    role: 'Manager',
-    phone: '+880 1234-567890',
-    address: '123 Business District, Dhaka',
-    profilePicture: '/placeholder.jpg',
-    vehicles: [
-      { id: 1, type: 'Car', model: 'Toyota Corolla', year: '2020', plateNumber: 'DHA-123' }
-    ],
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="lg" /></div>
+  }
+  if (error) {
+    return <div className="text-red-600 text-center py-8">{error}</div>
+  }
+  if (!userProfile) {
+    return <div className="text-center py-8">User profile not found.</div>
+  }
+
+  // Map userProfile to the expected structure
+  const userData = {
+    fullName: userProfile.full_name,
+    email: userProfile.email,
+    employeeId: userProfile.employee_id,
+    department: userProfile.department || '',
+    role: userProfile.role,
+    phone: userProfile.phone || '',
+    address: userProfile.address || '',
+    profilePicture: userProfile.profile_picture_url || '/placeholder.jpg',
+    vehicles: [], // No vehicles in ExpenseUser, so leave empty for now
     expenseLimits: {
-      monthlyBudget: 50000,
-      singleTransaction: 10000
+      monthlyBudget: userProfile.monthly_budget,
+      singleTransaction: userProfile.single_transaction_limit
     }
-  })
+  }
 
   const handleSaveChanges = () => {
     // TODO: Implement save changes logic
@@ -48,7 +59,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
             </button>
             <h1 className="text-xl font-semibold text-gray-900">Profile Settings</h1>
           </div>
-          
           <div className="flex items-center space-x-4">
             {editMode ? (
               <>
@@ -76,7 +86,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
             )}
           </div>
         </div>
-
         {/* Profile Tabs */}
         <div className="px-6 border-t border-gray-200">
           <div className="flex space-x-8">
@@ -113,7 +122,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
           </div>
         </div>
       </header>
-
       <div className="p-6 max-w-4xl mx-auto">
         {activeTab === 'personal' && (
           <div className="space-y-6">
@@ -140,7 +148,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                 </div>
               </div>
             </div>
-
             {/* Personal Information */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
@@ -171,7 +178,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     </div>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
@@ -198,7 +204,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                   <textarea
@@ -212,7 +217,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
             </div>
           </div>
         )}
-
         {activeTab === 'vehicles' && (
           <div className="space-y-6">
             {/* Registered Vehicles */}
@@ -225,9 +229,8 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   </button>
                 )}
               </div>
-              
               <div className="space-y-4">
-                {userData.vehicles.map((vehicle) => (
+                {userData.vehicles.length > 0 ? userData.vehicles.map((vehicle: any) => (
                   <div key={vehicle.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -244,12 +247,11 @@ export function UserProfile({ onBack }: UserProfileProps) {
                       </button>
                     )}
                   </div>
-                ))}
+                )) : <div className="text-gray-500">No vehicles registered.</div>}
               </div>
             </div>
           </div>
         )}
-
         {activeTab === 'limits' && (
           <div className="space-y-6">
             {/* Expense Limits */}
@@ -269,7 +271,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   </div>
                   <p className="text-sm text-gray-500 mt-1">Maximum amount you can expense per month</p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Single Transaction Limit</label>
                   <div className="relative">
@@ -283,7 +284,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   </div>
                   <p className="text-sm text-gray-500 mt-1">Maximum amount allowed per transaction</p>
                 </div>
-
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-sm text-blue-800">
                     Expense limits are set by your organization. Contact your manager or finance team to request changes.
