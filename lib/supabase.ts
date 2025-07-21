@@ -38,44 +38,7 @@ export interface ExpenseUser {
   is_active: boolean
 }
 
-// Hardcoded test user
-const TEST_USER: ExpenseUser = {
-  id: '123e4567-e89b-12d3-a456-426614174000',
-  email: 'test@example.com',
-  full_name: 'Test User',
-  employee_id: 'EMP-2024-001',
-  role: 'manager',
-  department: 'Engineering',
-  monthly_budget: 50000,
-  single_transaction_limit: 10000,
-  is_active: true
-}
-
 // Auth helper functions
-export const signInWithEmail = async (email: string, password: string) => {
-  // For testing: accept any email with password "123"
-  if (password === '123') {
-    // Create a fake session
-    const fakeSession = {
-      user: {
-        id: TEST_USER.id,
-        email: email || TEST_USER.email,
-        user_metadata: {
-          full_name: TEST_USER.full_name
-        }
-      },
-      access_token: 'fake_token'
-    }
-
-    // Store the fake session
-    await supabase.auth.setSession(fakeSession as any)
-    return { data: fakeSession, error: null }
-  }
-
-  // For non-test cases, use actual Supabase auth
-  return supabase.auth.signInWithPassword({ email, password })
-}
-
 export const signOut = async () => {
   return supabase.auth.signOut()
 }
@@ -87,11 +50,6 @@ export const getCurrentUser = async () => {
 
 // Database helper functions
 export const getUserProfile = async (userId: string): Promise<ExpenseUser | null> => {
-  // For testing: return hardcoded user
-  if (userId === TEST_USER.id) {
-    return TEST_USER
-  }
-
   const { data, error } = await supabase
     .from('expense_users')
     .select('*')
