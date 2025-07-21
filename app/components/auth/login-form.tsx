@@ -10,6 +10,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [logoError, setLogoError] = useState(false)
+  const [googleLogoError, setGoogleLogoError] = useState(false)
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -81,12 +82,19 @@ export function LoginForm() {
               </>
             ) : (
               <>
-                <Image 
-                  src="/google-logo.svg" 
-                  alt="Google Logo" 
-                  width={20} 
-                  height={20} 
-                />
+                {!googleLogoError ? (
+                  <Image 
+                    src="/google-logo.svg" 
+                    alt="Google Logo" 
+                    width={20} 
+                    height={20}
+                    onError={() => setGoogleLogoError(true)}
+                  />
+                ) : (
+                  <div className="w-5 h-5 bg-red-500 rounded-sm flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">G</span>
+                  </div>
+                )}
                 Sign in with Google
               </>
             )}

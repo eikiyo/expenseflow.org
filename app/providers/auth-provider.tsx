@@ -30,12 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (user) {
       try {
-        const profile = await getUserProfile(user.id)
+      const profile = await getUserProfile(user.id)
         if (!profile) {
           setError('Failed to load user profile')
           return
         }
-        setUserProfile(profile)
+      setUserProfile(profile)
         setError(null)
       } catch (err) {
         setError('An error occurred while loading your profile')
@@ -49,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error: signOutError } = await supabase.auth.signOut()
       if (signOutError) throw signOutError
       
-      setUser(null)
-      setUserProfile(null)
+    setUser(null)
+    setUserProfile(null)
       setError(null)
       router.push('/')
     } catch (err) {
@@ -66,15 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         if (sessionError) throw sessionError
 
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          const profile = await getUserProfile(session.user.id)
+      setUser(session?.user ?? null)
+      
+      if (session?.user) {
+        const profile = await getUserProfile(session.user.id)
           if (!profile) {
             setError('Failed to load user profile')
             return
           }
-          setUserProfile(profile)
+        setUserProfile(profile)
           setError(null)
         }
       } catch (err) {
@@ -91,18 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
-          setUser(session?.user ?? null)
-          
-          if (session?.user) {
-            const profile = await getUserProfile(session.user.id)
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          const profile = await getUserProfile(session.user.id)
             if (!profile) {
               setError('Failed to load user profile')
               return
             }
-            setUserProfile(profile)
+          setUserProfile(profile)
             setError(null)
-          } else {
-            setUserProfile(null)
+        } else {
+          setUserProfile(null)
             setError(null)
           }
         } catch (err) {
