@@ -10,15 +10,12 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ onBack }: UserProfileProps) {
-  const { userProfile, loading, error } = useAuth()
+  const { userProfile, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('personal')
   const [editMode, setEditMode] = useState(false)
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="lg" /></div>
-  }
-  if (error) {
-    return <div className="text-red-600 text-center py-8">{error}</div>
   }
   if (!userProfile) {
     return <div className="text-center py-8">User profile not found.</div>

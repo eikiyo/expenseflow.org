@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "db:generate": "supabase gen types typescript --project-id jbkzcjdqbuhgxahhzkno > lib/database.types.ts",
+    "db:generate": "supabase gen types typescript --project-id $NEXT_PUBLIC_SUPABASE_PROJECT_ID > lib/database.types.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

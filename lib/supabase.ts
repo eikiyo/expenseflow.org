@@ -13,11 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
   }
 })
 
@@ -36,19 +31,42 @@ export interface ExpenseUser {
   single_transaction_limit: number
   profile_picture_url?: string
   is_active: boolean
+  created_at?: string
+  updated_at?: string
 }
 
-// Auth helper functions
+// Clean Auth Functions - Google Only
+export const signInWithGoogle = async () => {
+  // Only access window in client-side
+  if (typeof window === 'undefined') {
+    return { data: null, error: new Error('Cannot sign in during server-side rendering') }
+  }
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    }
+  })
+  
+  return { data, error }
+}
+
 export const signOut = async () => {
-  return supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  return { error }
 }
 
 export const getCurrentUser = async () => {
   const { data: { session } } = await supabase.auth.getSession()
-  return session?.user
+  return session?.user || null
 }
 
-// Database helper functions
+// Database Functions
 export const getUserProfile = async (userId: string): Promise<ExpenseUser | null> => {
   const { data, error } = await supabase
     .from('expense_users')
@@ -58,6 +76,34 @@ export const getUserProfile = async (userId: string): Promise<ExpenseUser | null
 
   if (error) {
     console.error('Error fetching user profile:', error)
+    return null
+  }
+
+  return data
+}
+
+export const createUserProfile = async (user: any): Promise<ExpenseUser | null> => {
+  // Create user profile from Google OAuth data
+  const userProfile = {
+    id: user.id,
+    email: user.email,
+    full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown User',
+    employee_id: `EMP-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+    role: 'employee' as const,
+    monthly_budget: 5000,
+    single_transaction_limit: 1000,
+    profile_picture_url: user.user_metadata?.avatar_url,
+    is_active: true
+  }
+
+  const { data, error } = await supabase
+    .from('expense_users')
+    .insert(userProfile)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating user profile:', error)
     return null
   }
 
@@ -135,4 +181,4 @@ export const getPublicUrl = (bucket: string, path: string) => {
     .getPublicUrl(path)
 
   return data.publicUrl
-} 
+}

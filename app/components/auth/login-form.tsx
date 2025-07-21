@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { signInWithGoogle } from '@/lib/supabase'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import Image from 'next/image'
 import { DollarSign } from 'lucide-react'
@@ -17,27 +17,18 @@ export function LoginForm() {
     setError('')
 
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
+      const { data, error } = await signInWithGoogle()
 
       if (error) {
         setError(error.message)
         console.error('OAuth error:', error)
       } else {
         console.log('OAuth initiated successfully:', data)
+        // Don't set loading to false - user will be redirected
       }
     } catch (err) {
       setError('An unexpected error occurred')
       console.error('Unexpected error:', err)
-    } finally {
       setLoading(false)
     }
   }
@@ -61,7 +52,7 @@ export function LoginForm() {
               )}
             </div>
             <h1 className="text-2xl font-semibold text-gray-900">Welcome to ExpenseFlow</h1>
-            <p className="text-gray-600 mt-2">Sign in to manage your expenses</p>
+            <p className="text-gray-600 mt-2">Sign in with your Google account</p>
           </div>
           
           {error && (
@@ -73,7 +64,7 @@ export function LoginForm() {
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-lg border border-gray-300 shadow-sm transition-colors"
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-lg border border-gray-300 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
