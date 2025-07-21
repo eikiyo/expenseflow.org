@@ -1,26 +1,26 @@
 // Supabase Configuration
 export const supabaseConfig = {
-  url: 'https://jbkzcjdqbuhgxahhzkno.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impia3pjamRxYnVoZ3hhaGh6a25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMDY0MTYsImV4cCI6MjA2ODY4MjQxNn0.9ywKDUR0KJMugrNXzk3koBC38vLmQgwTtwsdvZHFurc',
-  serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impia3pjamRxYnVoZ3hhaGh6a25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMDY0MTYsImV4cCI6MjA2ODY4MjQxNn0.9ywKDUR0KJMugrNXzk3koBC38vLmQgwTtwsdvZHFurc',
-  projectId: 'jbkzcjdqbuhgxahhzkno'
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jbkzcjdqbuhgxahhzkno.supabase.co',
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  projectId: process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID || 'jbkzcjdqbuhgxahhzkno'
 };
 
 // Application Configuration
 export const appConfig = {
   name: 'ExpenseFlow',
   version: '1.0.0',
-  environment: 'development',
+  environment: process.env.NODE_ENV || 'development',
   maxFileSize: 5242880, // 5MB
   allowedFileTypes: ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
 };
 
 // Database Configuration
 export const databaseConfig = {
-  url: 'postgresql://postgres:Shakiba420@@@db.jbkzcjdqbuhgxahhzkno.supabase.co:5432/postgres'
+  url: process.env.DATABASE_URL
 };
 
-// Google Maps Configuration (you'll need to get an API key)
+// Google Maps Configuration
 export const mapsConfig = {
-  apiKey: 'your_google_maps_api_key_here'
+  apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 }; 

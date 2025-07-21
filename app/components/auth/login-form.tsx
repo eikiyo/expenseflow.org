@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { signInWithEmail } from '@/lib/supabase'
 import { DollarSign, Eye, EyeOff } from 'lucide-react'
 import { LoadingSpinner } from '../ui/loading-spinner'
+import { useRouter } from 'next/navigation'
 
 export function LoginForm() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -19,13 +21,13 @@ export function LoginForm() {
     setError('')
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { data, error } = await signInWithEmail(email, password)
 
       if (error) {
         setError(error.message)
+      } else if (data) {
+        // Successful login - redirect to dashboard
+        router.push('/dashboard')
       }
     } catch (err) {
       setError('An unexpected error occurred')
