@@ -2,10 +2,10 @@
 const nextConfig = {
   images: {
     domains: [
-      'jbkzcjdqbuhgxahhzkno.supabase.co',
+      process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'localhost',
       'localhost',
       'maps.googleapis.com'
-    ],
+    ].filter(Boolean),
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

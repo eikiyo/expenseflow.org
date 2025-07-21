@@ -46,13 +46,19 @@ A comprehensive, auditable, and user-friendly expense management platform that m
    cp .env.example .env.local
    ```
    
-   Update `.env.local` with your Supabase credentials:
+   Update `.env.local` with your actual Supabase credentials:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://jbkzcjdqbuhgxahhzkno.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    ```
+   
+   **To get your Supabase credentials:**
+   1. Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+   2. Select your project
+   3. Go to Settings → API
+   4. Copy the Project URL and anon public key
 
 4. **Set up the database**
    
