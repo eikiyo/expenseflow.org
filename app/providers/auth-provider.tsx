@@ -1,8 +1,12 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase, type ExpenseUser, getCurrentUser, getUserProfile } from '@/lib/supabase'
-import type { User } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { supabase, type ExpenseUser, getUserProfile } from '@/lib/supabase'
+
+interface User {
+  id: string
+  email?: string
+}
 
 interface AuthContextType {
   user: User | null
@@ -14,7 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<ExpenseUser | null>(null)
   const [loading, setLoading] = useState(true)
