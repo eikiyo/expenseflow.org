@@ -1,31 +1,18 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   User, 
   Bell, 
-  ArrowLeft, 
-  Check, 
   ChevronDown, 
-  ChevronUp, 
   Plane, 
   Wrench, 
   FileText, 
-  Car, 
-  MapPin, 
-  Upload, 
-  Calendar, 
   DollarSign,
   Clock,
   AlertCircle,
   Eye,
-  EyeOff,
-  Plus,
-  Minus,
-  Edit,
-  Download,
-  Filter,
-  SkipForward
+  Plus
 } from 'lucide-react';
 import { useAuth } from './providers/auth-provider'
 import { LoadingSpinner } from './components/ui/loading-spinner'
@@ -35,57 +22,12 @@ import { TravelFlow } from './components/expense/travel-flow'
 import { MaintenanceFlow } from './components/expense/maintenance-flow'
 import Image from 'next/image';
 
-interface AppUser {
-  name: string
-  email: string
-  role: string
-  avatar?: string
-}
-
 export default function ExpenseSubmissionPlatform() {
   const { user: authUser, userProfile, loading, signOut } = useAuth()
   const [currentView, setCurrentView] = useState('dashboard');
-  const [user, setUser] = useState<AppUser | null>(null);
   const [expenseType, setExpenseType] = useState('');
-  const [currentStep, setCurrentStep] = useState(1);
-  const [collapsedCards, setCollapsedCards] = useState({});
-  const [skippedSections, setSkippedSections] = useState({});
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  const [formData, setFormData] = useState({
-    transportation: {},
-    route: {},
-    vehicle: {},
-    foodAccommodation: {},
-    maintenance: {},
-    requisition: {}
-  });
-
-  // Update view based on auth state
-  useEffect(() => {
-    if (loading) return
-    if (authUser && userProfile) {
-      setUser({
-        name: userProfile.full_name,
-        email: userProfile.email,
-        role: userProfile.role
-      })
-      if (currentView === 'login') {
-        setCurrentView('dashboard')
-      }
-    } else {
-      setUser(null)
-      setCurrentView('login')
-    }
-  }, [authUser, userProfile, loading])
-
-  // Simulated user data for demo
-  const mockUser: AppUser = {
-    name: userProfile?.full_name || 'John Doe',
-    email: userProfile?.email || 'john.doe@company.com',
-    avatar: '/api/placeholder/40/40',
-    role: userProfile?.role || 'Employee'
-  };
 
   const mockStats = {
     pendingApprovals: 3,
@@ -178,8 +120,8 @@ export default function ExpenseSubmissionPlatform() {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                        <p className="text-xs text-gray-500">{user?.role}</p>
+                        <p className="text-sm font-medium text-gray-900">{userProfile.full_name}</p>
+                        <p className="text-xs text-gray-500">{userProfile.role}</p>
                       </div>
                       <ChevronDown className="w-4 h-4 text-gray-500" />
                       
