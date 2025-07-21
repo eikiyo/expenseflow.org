@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '../config'
 
+if (!supabaseConfig.url || !supabaseConfig.anonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+}
+
 const supabaseUrl = supabaseConfig.url
 const supabaseAnonKey = supabaseConfig.anonKey
 
