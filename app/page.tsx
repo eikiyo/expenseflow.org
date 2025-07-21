@@ -368,9 +368,10 @@ export default function ExpenseSubmissionPlatform() {
                 </div>
               </div>
             </div>
-        )
+          </div>
+        );
     }
   }
 
-  return renderCurrentView()
+  return renderCurrentView();
 } 
