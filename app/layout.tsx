@@ -1,8 +1,5 @@
-'use client'
-
 import { Inter } from 'next/font/google'
-import { AuthProvider } from './providers/auth-provider'
-import { Toaster } from 'react-hot-toast'
+import { RootLayoutClient } from './root-layout-client'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -26,21 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-            }}
-          />
-        </AuthProvider>
+        <RootLayoutClient>
+          {children}
+        </RootLayoutClient>
       </body>
     </html>
   )
