@@ -45,7 +45,7 @@ export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/`, // Redirect back to main app
+      redirectTo: `${window.location.origin}/auth/callback`, // Use proper callback route
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
