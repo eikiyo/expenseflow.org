@@ -14,9 +14,13 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getSupabaseUrl, validateConfig } from './config'
+import { getSupabaseUrl, validateConfig, getBaseUrl } from './config'
 import Logger from '@/app/utils/logger'
 
+/**
+ * Holds the singleton Supabase client instance.
+ * Ensures only one client is created during the app lifecycle.
+ */
 let supabaseInstance: SupabaseClient<Database> | null = null;
 
 // Validate configuration on module load
@@ -82,7 +86,7 @@ export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/`, // Just redirect to home page
+      redirectTo: `${getBaseUrl()}/`, // Use configured base URL for consistency
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',

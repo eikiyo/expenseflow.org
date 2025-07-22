@@ -15,7 +15,7 @@
 export const APP_URLS = {
   development: 'http://localhost:3000',
   preview: 'https://expenseflow-org-git-main-eikiyos-projects.vercel.app',
-  production: 'https://expenseflow.org' // No www
+  production: 'https://www.expenseflow.org' // Use www as primary domain
 } as const;
 
 // Get the current environment

@@ -15,6 +15,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
+import { getBaseUrl } from '@/lib/config'
 import Logger from '@/app/utils/logger'
 
 interface User {
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${getBaseUrl()}/`,
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account'
@@ -87,6 +88,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Logger.auth.info('OAuth callback detected, waiting for processing')
           await new Promise(resolve => setTimeout(resolve, 5000)) // Increased to 5 seconds
           Logger.auth.info('Delay completed, checking for session')
+          
+          // Explicitly handle OAuth callback for @supabase/ssr
+          const urlParams = new URLSearchParams(window.location.search)
+          const code = urlParams.get('code')
+          const state = urlParams.get('state')
+          
+          if (code && state) {
+            Logger.auth.info('Explicitly exchanging OAuth code for session')
+            try {
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+              
+              if (error) {
+                Logger.auth.error('Failed to exchange code for session', {
+                  message: error.message,
+                  meta: { name: error.name }
+                })
+              } else if (data.session) {
+                Logger.auth.info('Successfully exchanged code for session', {
+                  meta: { userId: data.session.user.id }
+                })
+                setUser(data.session.user)
+                setLoading(false)
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname)
+                return
+              }
+            } catch (err: any) {
+              Logger.auth.error('Error during code exchange', {
+                message: err.message,
+                meta: { error: err }
+              })
+            }
+          }
         }
         
         const { data: { session }, error } = await supabase.auth.getSession()
