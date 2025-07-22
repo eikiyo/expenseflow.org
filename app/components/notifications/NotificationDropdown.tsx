@@ -44,9 +44,21 @@ export function NotificationDropdown() {
   const fetchNotifications = async () => {
     if (!user) return
 
+    // Fetches unread notifications for the current user and updates state
+    // Ensures correct Notification type mapping to prevent runtime errors
     try {
       const data = await getUnreadNotifications(user.id)
-      setNotifications(data)
+      // Defensive mapping to ensure all Notification fields are present
+      const mapped = data.map((n: any) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        link: n.link,
+        read: n.read,
+        created_at: n.created_at
+      })) as Notification[]
+      setNotifications(mapped)
     } catch (error) {
       console.error('Error fetching notifications:', error)
     }

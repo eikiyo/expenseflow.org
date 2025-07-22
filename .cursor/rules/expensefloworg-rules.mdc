@@ -105,5 +105,90 @@ Before any commit, always look for inconsistencies, duplicate implementations, c
 
 Before any commit, check the whole code base for possible runtime errors and fix it
 
+
+Implementation Checklist
+Pre-Development Checklist
+
+ TypeScript strict mode enabled
+ ESLint with React/TypeScript rules configured AirbnbMedium
+ Project structure follows feature-based organization
+ Supabase client properly typed
+ Error boundary wrapper implemented
+ Global state management configured (if needed) DEV Community +2
+
+Component Development Checklist
+
+ TypeScript interface defined for props AirbnbGitHub
+ Functional component with proper typing Airbnb
+ Error handling for async operations
+ Loading and error states implemented
+ Accessibility attributes included
+ Memoization applied where needed
+ Unit tests written Medium +2
+
+Code Review Checklist
+
+ No any types without justification GoogleTs
+ All functions have explicit return types
+ Error boundaries wrap async components
+ Forms use Zod validation freeCodeCamp +3
+ Database queries are type-safe
+ Security best practices followed
+ Performance optimizations applied
+ Tests cover happy path and edge cases
+
+ Always Do
+
+✅ Use TypeScript strict mode GoogleGitHub
+✅ Define interfaces for all props AirbnbGitHub
+✅ Handle loading, error, and success states
+✅ Include ARIA attributes
+✅ Validate with Zod schemas freeCodeCamp +3
+✅ Use semantic HTML Airbnb +3
+✅ Implement error boundaries
+✅ Write unit tests DEV Community +3
+
+Never Do
+
+❌ Use any type (use unknown instead) GoogleTs
+❌ Use var (use const or let) GitHubGitBook
+❌ Mutate state directly
+❌ Use dangerouslySetInnerHTML without sanitization
+❌ Ignore TypeScript errors
+❌ Skip error handling
+❌ Forget accessibility ReactMedium
+❌ Mix concerns in components 
+
+
+Pre-Development Checklist
+
+ TypeScript strict mode enabled
+ ESLint with React/TypeScript rules configured AirbnbMedium
+ Project structure follows feature-based organization
+ Supabase client properly typed
+ Error boundary wrapper implemented
+ Global state management configured (if needed) DEV Community +2
+
+Component Development Checklist
+
+ TypeScript interface defined for props AirbnbGitHub
+ Functional component with proper typing Airbnb
+ Error handling for async operations
+ Loading and error states implemented
+ Accessibility attributes included
+ Memoization applied where needed
+ Unit tests written Medium +2
+
+Code Review Checklist
+
+ No any types without justification GoogleTs
+ All functions have explicit return types
+ Error boundaries wrap async components
+ Forms use Zod validation freeCodeCamp +3
+ Database queries are type-safe
+ Security best practices followed
+ Performance optimizations applied
+ Tests cover happy path and edge case
+
 ---
 
