@@ -21,11 +21,13 @@ export function useUserProfile() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isCreating, setIsCreating] = useState(false); // Add isCreating state
 
   // Creates or updates a user profile with unified fields
   // Returns the profile or null if operation fails
   const createProfile = async (userData: any) => {
-    if (!userData) return null
+    if (!userData || isCreating) return null; // Prevent concurrent creations
+    setIsCreating(true); // Set lock
 
     const now = new Date().toISOString()
     const profileData = {
@@ -81,6 +83,7 @@ export function useUserProfile() {
     }
 
     Logger.db.info('Profile upserted successfully', { meta: { id: data?.id } })
+    setIsCreating(false); // Release lock
     return data
   }
 
@@ -123,7 +126,9 @@ export function useUserProfile() {
       return
     }
 
+    let isCancelled = false;
     const loadProfile = async () => {
+      if (isCreating) return; // Prevent multiple concurrent loads
       setLoading(true)
       
       try {
@@ -138,23 +143,31 @@ export function useUserProfile() {
         let userProfile = await fetchProfile(user.id)
         
         // Create/update profile if needed
-        if (!userProfile) {
+        if (!userProfile && !isCancelled) {
           userProfile = await createProfile(user)
         }
         
-        setProfile(userProfile)
+        if (!isCancelled) {
+          setProfile(userProfile)
+        }
       } catch (error: any) {
         Logger.db.error('Error loading profile', { 
           message: error.message,
           meta: { userId: user.id }
         })
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     loadProfile()
-  }, [user])
+
+    return () => {
+      isCancelled = true;
+    }
+  }, [user, isCreating])
 
   return { profile, loading }
 } 
