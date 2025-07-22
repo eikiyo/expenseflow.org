@@ -83,44 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         Logger.auth.info('Getting initial session')
         
-        // Add a small delay to allow Supabase to process OAuth callbacks
+        // Check for OAuth callback parameters
         if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
-          Logger.auth.info('OAuth callback detected, waiting for processing')
-          await new Promise(resolve => setTimeout(resolve, 5000)) // Increased to 5 seconds
-          Logger.auth.info('Delay completed, checking for session')
-          
-          // Explicitly handle OAuth callback for @supabase/ssr
-          const urlParams = new URLSearchParams(window.location.search)
-          const code = urlParams.get('code')
-          const state = urlParams.get('state')
-          
-          if (code && state) {
-            Logger.auth.info('Explicitly exchanging OAuth code for session')
-            try {
-              const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-              
-              if (error) {
-                Logger.auth.error('Failed to exchange code for session', {
-                  message: error.message,
-                  meta: { name: error.name }
-                })
-              } else if (data.session) {
-                Logger.auth.info('Successfully exchanged code for session', {
-                  meta: { userId: data.session.user.id }
-                })
-                setUser(data.session.user)
-                setLoading(false)
-                // Clean up URL
-                window.history.replaceState({}, document.title, window.location.pathname)
-                return
-              }
-            } catch (err: any) {
-              Logger.auth.error('Error during code exchange', {
-                message: err.message,
-                meta: { error: err }
-              })
-            }
-          }
+          Logger.auth.info('OAuth callback detected, letting onAuthStateChange handle it')
+          // Don't call getSession() yet, let the auth state change handle it
+          setLoading(false)
+          return
         }
         
         const { data: { session }, error } = await supabase.auth.getSession()
