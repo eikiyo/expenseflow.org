@@ -66,21 +66,19 @@ export const resetSupabaseClient = () => {
 // Helper function for Google OAuth sign in
 export const signInWithGoogle = async () => {
   const supabase = getSupabaseClient();
-  const redirectTo = getOAuthCallbackUrl();
   
   Logger.auth.info('Initiating Google OAuth sign in', {
     meta: {
-      redirectTo,
       environment: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV
     }
   });
   
-  // Let Supabase handle the entire OAuth flow
+  // Let Supabase handle the entire OAuth flow with its built-in callback
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo,
+      redirectTo: `${window.location.origin}/auth/callback`,
       queryParams: {
         access_type: 'offline',
         prompt: 'select_account'

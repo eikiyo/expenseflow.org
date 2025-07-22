@@ -66,15 +66,63 @@ export default function AuthCallback() {
     })
     setStatus('OAuth code received, processing automatically...')
 
-    // Let Supabase handle the OAuth flow automatically
-    // This will use the stored PKCE code verifier from the initial request
+    // Manually exchange the code for a session
+    const exchangeCode = async () => {
+      try {
+        Logger.auth.info('Attempting to exchange code for session', {
+          meta: { codeLength: code.length }
+        })
+        
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (error) {
+          Logger.auth.error('Failed to exchange code for session', {
+            meta: { error: error.message, code: error.name }
+          })
+          setStatus('Failed to exchange code')
+          setTimeout(() => {
+            router.push('/?auth_error=exchange_failed&message=' + encodeURIComponent(error.message))
+          }, 2000)
+          return
+        }
+        
+        if (data.session) {
+          Logger.auth.info('Successfully exchanged code for session', {
+            meta: { userId: data.session.user.id }
+          })
+          setStatus('Successfully signed in!')
+          setTimeout(() => {
+            router.push('/')
+          }, 1000)
+        } else {
+          Logger.auth.warn('Code exchange succeeded but no session returned')
+          setStatus('No session after code exchange')
+          setTimeout(() => {
+            router.push('/?auth_error=no_session')
+          }, 2000)
+        }
+      } catch (err: any) {
+        Logger.auth.error('Error during code exchange', {
+          meta: { error: err.message }
+        })
+        setStatus('Error during authentication')
+        setTimeout(() => {
+          router.push('/?auth_error=exchange_error&message=' + encodeURIComponent(err.message))
+        }, 2000)
+      }
+    }
+
+    // Exchange the code immediately
+    exchangeCode()
+
+    // Also listen for auth state changes as backup
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       Logger.auth.info('Auth state changed in callback', {
         meta: { event, hasSession: !!session }
       })
 
       if (event === 'SIGNED_IN' && session) {
-        Logger.auth.info('Successfully signed in, redirecting to dashboard')
+        Logger.auth.info('Successfully signed in via auth state change, redirecting to dashboard')
         setStatus('Successfully signed in!')
         setTimeout(() => {
           router.push('/')
@@ -102,44 +150,14 @@ export default function AuthCallback() {
       }
     })
 
-    // Also try to get the current session after a delay
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (error) {
-          Logger.auth.error('Error getting session', {
-            message: error.message,
-            meta: { code: error.name }
-          })
-        } else if (session) {
-          Logger.auth.info('Session found via getSession, redirecting')
-          setStatus('Session found!')
-          setTimeout(() => {
-            router.push('/')
-          }, 1000)
-        } else {
-          Logger.auth.info('No session found via getSession, waiting...')
-          setStatus('No session yet, waiting for auth state change...')
-        }
-      } catch (err: any) {
-        Logger.auth.error('Error checking session', {
-          message: err.message,
-          meta: { error: err }
-        })
-      }
-    }
-
-    // Check session after a delay
-    setTimeout(checkSession, 2000)
-
     // Set a timeout to redirect if nothing happens
     const timeout = setTimeout(() => {
       Logger.auth.warn('OAuth callback timeout, redirecting to login')
       setStatus('Authentication timeout')
       setTimeout(() => {
         router.push('/?auth_error=timeout')
-      }, 1000)
-    }, 10000) // 10 second timeout
+      }, 15000) // 15 second timeout
+    }, 15000) // 15 second timeout
 
     return () => {
       subscription.unsubscribe()
