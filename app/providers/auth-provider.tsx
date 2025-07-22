@@ -15,7 +15,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient, resetSupabaseClient } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/supabase';
 
@@ -61,6 +61,8 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
           document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         }
       });
+      // Reset the Supabase client instance after clearing cookies
+      resetSupabaseClient();
     } catch (error) {
       console.log('🤷 Could not clear cookies:', error);
     }
@@ -73,6 +75,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
       
       try {
         // Always get a fresh session from the client
+        const supabase = getSupabaseClient();
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         console.log('📱 Client session check result:', { 
           session: !!session, 
@@ -83,6 +86,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         
         if (sessionError) {
           console.error('❌ Error getting session:', sessionError);
+          clearAuthCookies(); // Clear cookies and reset client on error
           setLoading(false);
           return;
         }
@@ -98,6 +102,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
+        clearAuthCookies(); // Clear cookies and reset client on error
       } finally {
         console.log('✅ Auth initialization complete, setting loading to false');
         setLoading(false);
@@ -107,10 +112,12 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
     console.log('🚀 Starting auth initialization...');
     initializeAuth().catch((error) => {
       console.error('💥 Failed to initialize auth:', error);
+      clearAuthCookies(); // Clear cookies and reset client on error
       setLoading(false);
     });
 
     // Set up auth state change listener
+    const supabase = getSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth state changed:', event, {
         hasSession: !!session,
@@ -126,6 +133,9 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         console.log('❌ No session in auth state change, clearing user');
         setUser(null);
         setUserProfile(null);
+        if (event === 'SIGNED_OUT') {
+          clearAuthCookies(); // Clear cookies and reset client on sign out
+        }
       }
       
       if (event === 'SIGNED_OUT') {
@@ -137,7 +147,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
       console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, [initialSession, supabase, router]);
+  }, [initialSession, router]);
 
   // Fetch user profile helper function
   const fetchUserProfile = async (authUser: User) => {
@@ -150,6 +160,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
     });
     
     try {
+      const supabase = getSupabaseClient();
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -176,6 +187,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
           
           console.log('📝 Creating profile with data:', newProfileData);
           
+          const supabase = getSupabaseClient();
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert(newProfileData)
@@ -253,6 +265,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
 
   const signOut = async () => {
     try {
+      const supabase = getSupabaseClient();
       await supabase.auth.signOut();
       setUser(null);
       setUserProfile(null);

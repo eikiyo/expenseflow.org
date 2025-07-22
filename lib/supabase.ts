@@ -1,7 +1,7 @@
 /**
  * SUPABASE CLIENT CONFIGURATION
  * 
- * This file sets up unified Supabase clients using the SSR package.
+ * This file sets up a singleton Supabase client using the SSR package.
  * Uses @supabase/ssr for better session handling and cookie compatibility.
  * 
  * Dependencies: @supabase/ssr
@@ -13,22 +13,35 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-// Client-side Supabase client with error checking
+let supabaseInstance: SupabaseClient<Database> | null = null;
+
+// Singleton pattern to ensure only one client instance exists
 export const getSupabaseClient = () => {
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
   try {
-    const client = createBrowserClient<Database>(
+    supabaseInstance = createBrowserClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     console.log('✅ Supabase browser client created successfully');
-    return client;
+    return supabaseInstance;
   } catch (error) {
     console.error('❌ Failed to create Supabase client:', error);
     throw error;
   }
-}
+};
 
+// Reset the instance (useful for testing or when we need a fresh client)
+export const resetSupabaseClient = () => {
+  supabaseInstance = null;
+};
+
+// Type definitions
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
