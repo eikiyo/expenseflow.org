@@ -21,16 +21,16 @@ export function useUserProfile() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Creates a new profile for first-time users
-  // Returns the created profile or null if creation fails
+  // Creates or updates a user profile
+  // Returns the profile or null if operation fails
   const createProfile = async (userData: any) => {
     if (!userData) return null
 
     const now = new Date().toISOString()
-    const newProfile = {
+    const profileData = {
       id: userData.id,
-      email: userData.email,
-      full_name: userData.user_metadata?.full_name || 'New User',
+      email: userData.email || '',
+      full_name: userData.user_metadata?.full_name || userData.email?.split('@')[0] || 'New User',
       avatar_url: userData.user_metadata?.avatar_url || null,
       department: null,
       role: 'user',
@@ -40,26 +40,34 @@ export function useUserProfile() {
       updated_at: now
     }
 
-    console.log('🆕 Creating new user profile:', {
+    console.log('🔄 Upserting user profile:', {
       userId: userData.id,
       email: userData.email,
       metadata: userData.user_metadata
     })
 
-    // Insert new profile using authenticated user context
+    // Use upsert to handle both insert and update cases
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('profiles')
-      .insert(newProfile)
+      .upsert(profileData, {
+        onConflict: 'id',
+        ignoreDuplicates: false
+      })
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Profile creation error:', error)
+      console.error('❌ Profile upsert error:', {
+        error,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      })
       return null
     }
 
-    console.log('✅ Profile created successfully:', data)
+    console.log('✅ Profile upserted successfully:', data)
     return data
   }
 
@@ -80,7 +88,12 @@ export function useUserProfile() {
       if (error.code === 'PGRST116') {
         console.log('ℹ️ No existing profile found - will create new one')
       } else {
-        console.error('❌ Profile fetch error:', error)
+        console.error('❌ Profile fetch error:', {
+          error,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
       }
       return null
     }
@@ -98,16 +111,21 @@ export function useUserProfile() {
     const loadProfile = async () => {
       setLoading(true)
       
-      // Try to fetch existing profile
-      let userProfile = await fetchProfile(user.id)
-      
-      // Create profile if it doesn't exist
-      if (!userProfile) {
-        userProfile = await createProfile(user)
+      try {
+        // Try to fetch existing profile
+        let userProfile = await fetchProfile(user.id)
+        
+        // Create/update profile if needed
+        if (!userProfile) {
+          userProfile = await createProfile(user)
+        }
+        
+        setProfile(userProfile)
+      } catch (error) {
+        console.error('❌ Error loading profile:', error)
+      } finally {
+        setLoading(false)
       }
-      
-      setProfile(userProfile)
-      setLoading(false)
     }
 
     loadProfile()

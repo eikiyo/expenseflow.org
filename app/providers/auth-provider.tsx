@@ -36,41 +36,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const signInWithGoogle = async () => {
+    console.log('🔄 Initiating Google sign in...')
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account'
+        }
       }
     })
-    if (error) throw error
+    if (error) {
+      console.error('❌ Google sign in error:', error)
+      throw error
+    }
   }
 
   const signOut = async () => {
+    console.log('🔄 Signing out...')
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      console.error('❌ Sign out error:', error)
+      throw error
+    }
     setUser(null)
+    console.log('✅ Signed out successfully')
   }
 
   useEffect(() => {
     const supabase = getSupabaseClient()
     
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null)
-      setLoading(false)
-    })
+    const initializeAuth = async () => {
+      try {
+        console.log('🔄 Getting initial session...')
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Error getting session:', error)
+          setLoading(false)
+          return
+        }
+
+        if (session?.user) {
+          console.log('✅ Found existing session:', {
+            userId: session.user.id,
+            email: session.user.email
+          })
+          setUser(session.user)
+        } else {
+          console.log('ℹ️ No existing session found')
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('❌ Error initializing auth:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user || null)
+      async (event, session) => {
+        console.log('🔄 Auth state changed:', {
+          event,
+          userId: session?.user?.id,
+          email: session?.user?.email
+        })
+
+        if (session?.user) {
+          console.log('✅ User authenticated:', {
+            userId: session.user.id,
+            email: session.user.email
+          })
+          setUser(session.user)
+        } else {
+          console.log('ℹ️ User not authenticated')
+          setUser(null)
+        }
         setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      console.log('🧹 Cleaning up auth subscriptions')
+      subscription.unsubscribe()
+    }
   }, [])
 
   return (
