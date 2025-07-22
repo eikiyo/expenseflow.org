@@ -56,17 +56,23 @@ export const signInWithGoogle = async () => {
     vercelEnv: process.env.VERCEL_ENV
   });
   
-  return await supabase.auth.signInWithOAuth({
+  // Let Supabase handle the entire OAuth flow
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo,
-      skipBrowserRedirect: false,
       queryParams: {
         access_type: 'offline',
         prompt: 'select_account'
       }
     }
   });
+
+  if (error) throw error;
+  if (!data.url) throw new Error('No OAuth URL returned');
+
+  // Redirect to the OAuth URL
+  window.location.href = data.url;
 };
 
 // Type definitions
