@@ -66,8 +66,15 @@ CREATE POLICY admin_error_alerts ON error_alerts
     )
   );
 
--- Update existing policies to handle status changes correctly
+-- Drop all existing expense policies
 DROP POLICY IF EXISTS submit_own_draft_expenses ON expenses;
+DROP POLICY IF EXISTS approve_assigned_expenses ON expenses;
+DROP POLICY IF EXISTS view_own_expenses ON expenses;
+DROP POLICY IF EXISTS create_draft_expenses ON expenses;
+DROP POLICY IF EXISTS update_own_draft_expenses ON expenses;
+DROP POLICY IF EXISTS submit_draft_expenses ON expenses;
+DROP POLICY IF EXISTS view_assigned_expenses ON expenses;
+DROP POLICY IF EXISTS approve_reject_expenses ON expenses;
 
 -- Policy for users to view their own expenses
 CREATE POLICY view_own_expenses ON expenses
