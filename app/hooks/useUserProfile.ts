@@ -26,13 +26,25 @@ export function useUserProfile() {
   const createProfile = async (userData: any) => {
     if (!userData) return null
 
+    const now = new Date().toISOString()
     const newProfile = {
       id: userData.id,
       email: userData.email,
       full_name: userData.user_metadata?.full_name || 'New User',
+      avatar_url: userData.user_metadata?.avatar_url || null,
+      department: null,
       role: 'user',
+      manager_id: null,
       expense_limit: 10000,
+      created_at: now,
+      updated_at: now
     }
+
+    console.log('🆕 Creating new user profile:', {
+      userId: userData.id,
+      email: userData.email,
+      metadata: userData.user_metadata
+    })
 
     // Insert new profile using authenticated user context
     const supabase = getSupabaseClient()
@@ -43,16 +55,19 @@ export function useUserProfile() {
       .single()
 
     if (error) {
-      console.error('Profile creation error:', error)
+      console.error('❌ Profile creation error:', error)
       return null
     }
 
+    console.log('✅ Profile created successfully:', data)
     return data
   }
 
   // Fetches existing profile from database
   // Returns profile data or null if not found
   const fetchProfile = async (userId: string) => {
+    console.log('🔍 Fetching user profile:', userId)
+    
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
       .from('profiles')
@@ -61,10 +76,16 @@ export function useUserProfile() {
       .single()
 
     if (error) {
-      console.error('Profile fetch error:', error)
+      // If profile doesn't exist, that's expected for new users
+      if (error.code === 'PGRST116') {
+        console.log('ℹ️ No existing profile found - will create new one')
+      } else {
+        console.error('❌ Profile fetch error:', error)
+      }
       return null
     }
 
+    console.log('✅ Found existing profile:', data)
     return data
   }
 
