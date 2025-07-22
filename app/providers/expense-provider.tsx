@@ -13,170 +13,115 @@
 
 'use client'
 
-import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
-import { useAuth } from './auth-provider'
-import { ExpenseStatus, TransportationType } from '../types/expense'
-import type { 
-  ExpenseFormState, 
-  ExpenseFormAction,
-  TravelExpense,
-  MaintenanceExpense,
-  RequisitionExpense
-} from '../types/expense'
-import { validateExpense, formatValidationErrors } from '../utils/validation'
-import { saveExpense } from '../services/expense-service'
-import { toast } from 'react-hot-toast'
+import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { useAuth } from './auth-provider';
+import { saveExpense } from '@/app/services/expense-service';
+import { validateExpense } from '@/app/utils/validation';
+import { formatValidationErrors } from '@/app/utils/errors';
+import {
+  ExpenseStatus,
+  TransportationType,
+  type Expense,
+  type TravelExpense,
+  type ExpenseFormState,
+  type ExpenseFormAction
+} from '@/app/types/expense';
 
-// Initial form state
+const initialTravelExpense: TravelExpense = {
+  type: 'travel',
+  userId: '',
+  status: ExpenseStatus.DRAFT,
+  totalAmount: 0,
+  currency: 'BDT',
+  description: '',
+  startDate: new Date(),
+  endDate: new Date(),
+  startLocation: { address: '' },
+  endLocation: { address: '' },
+  transportationType: TransportationType.PERSONAL_CAR
+};
+
 const initialState: ExpenseFormState = {
-  currentStep: 1,
-  expense: {
-    type: 'travel' as const,
-    userId: '',
-    status: ExpenseStatus.DRAFT,
-    totalAmount: 0,
-    currency: 'BDT',
-    description: '',
-    startDate: new Date(),
-    endDate: new Date(),
-    startLocation: { address: '' },
-    endLocation: { address: '' },
-    transportationType: TransportationType.PERSONAL_CAR
-  } as TravelExpense,
+  expense: initialTravelExpense,
   isDirty: false,
+  currentStep: 0,
   errors: {},
   lastSaved: undefined
-}
+};
 
-// Reducer function for handling form state updates
 function expenseFormReducer(state: ExpenseFormState, action: ExpenseFormAction): ExpenseFormState {
   switch (action.type) {
     case 'SET_EXPENSE': {
       const newState = {
         ...state,
-        expense: { ...state.expense, ...action.payload },
+        expense: { ...state.expense, ...action.payload } as Expense,
         isDirty: true
-      }
-      
-      // Validate the updated expense
-      const validationResult = validateExpense(newState.expense)
+      };
+      const validationResult = validateExpense(newState.expense);
       if (!validationResult.success) {
-        newState.errors = formatValidationErrors(validationResult)
+        newState.errors = formatValidationErrors(validationResult);
       } else {
-        newState.errors = {}
+        newState.errors = {};
       }
-      
-      return newState
+      return newState;
     }
     case 'SET_STEP':
-      return {
-        ...state,
-        currentStep: action.payload
-      }
+      return { ...state, currentStep: action.payload };
     case 'SET_ERRORS':
-      return {
-        ...state,
-        errors: action.payload
-      }
+      return { ...state, errors: action.payload };
     case 'MARK_SAVED':
-      return {
-        ...state,
-        isDirty: false,
-        lastSaved: action.payload
-      }
+      return { ...state, isDirty: false, lastSaved: action.payload };
     case 'RESET_FORM':
-      return initialState
+      return { ...initialState };
     default:
-      return state
+      return state;
   }
 }
 
-// Context type definition
-interface ExpenseContextType {
-  state: ExpenseFormState
-  dispatch: React.Dispatch<ExpenseFormAction>
-  saveExpense: () => Promise<void>
-  validateForm: () => boolean
-  hasErrors: boolean
-}
+const ExpenseContext = createContext<{
+  state: ExpenseFormState;
+  dispatch: React.Dispatch<ExpenseFormAction>;
+} | null>(null);
 
-const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined)
-
-// Provider component
 export function ExpenseProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(expenseFormReducer, {
     ...initialState,
-    expense: { ...initialState.expense, userId: user?.id || '' }
-  })
+    expense: { ...initialTravelExpense, userId: user?.id || '' } as Expense
+  });
 
-  // Auto-save effect
   useEffect(() => {
     if (state.isDirty) {
       const timeoutId = setTimeout(() => {
-        handleSave()
-      }, 30000) // Auto-save after 30 seconds of inactivity
-
-      return () => clearTimeout(timeoutId)
+        handleSave();
+      }, 30000); // Auto-save after 30 seconds of inactivity
+      return () => clearTimeout(timeoutId);
     }
-  }, [state.isDirty, state.expense])
+  }, [state.isDirty, state.expense]);
 
-  // Save expense to backend
   const handleSave = async () => {
-    if (!state.isDirty) return
-
     try {
-      const validationResult = validateExpense(state.expense)
-      if (!validationResult.success) {
-        dispatch({ 
-          type: 'SET_ERRORS', 
-          payload: formatValidationErrors(validationResult)
-        })
-        return
-      }
-
-      await saveExpense(state.expense)
-      dispatch({ type: 'MARK_SAVED', payload: new Date() })
-      toast.success('Expense saved successfully')
+      const savedExpense = await saveExpense(state.expense);
+      dispatch({ type: 'MARK_SAVED', payload: new Date() });
+      dispatch({ type: 'SET_EXPENSE', payload: savedExpense });
     } catch (error) {
-      console.error('Error saving expense:', error)
-      toast.error('Failed to save expense')
+      console.error('Error saving expense:', error);
+      // Handle error appropriately
     }
-  }
-
-  // Validate the entire form
-  const validateForm = () => {
-    const validationResult = validateExpense(state.expense)
-    if (!validationResult.success) {
-      dispatch({ 
-        type: 'SET_ERRORS', 
-        payload: formatValidationErrors(validationResult)
-      })
-      return false
-    }
-    return true
-  }
-
-  const value = {
-    state,
-    dispatch,
-    saveExpense: handleSave,
-    validateForm,
-    hasErrors: Object.keys(state.errors).length > 0
-  }
+  };
 
   return (
-    <ExpenseContext.Provider value={value}>
+    <ExpenseContext.Provider value={{ state, dispatch }}>
       {children}
     </ExpenseContext.Provider>
-  )
+  );
 }
 
-// Custom hook for using the expense context
 export function useExpense() {
-  const context = useContext(ExpenseContext)
-  if (context === undefined) {
-    throw new Error('useExpense must be used within an ExpenseProvider')
+  const context = useContext(ExpenseContext);
+  if (!context) {
+    throw new Error('useExpense must be used within an ExpenseProvider');
   }
-  return context
+  return context;
+} 
 } 
