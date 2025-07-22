@@ -11,193 +11,109 @@
  * @since 2024-01-01
  */
 
-import sgMail from '@sendgrid/mail'
-import { supabase } from '@/lib/supabase'
-import type { ExpenseUser } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase';
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+export interface Notification {
+  id?: string;
+  userId: string;
+  title: string;
+  content: string;
+  type: 'expense_submitted' | 'expense_approved' | 'expense_rejected' | 'comment_added';
+  status: 'pending' | 'sent' | 'failed';
+  metadata?: any;
+  createdAt?: Date;
+  readAt?: Date;
 }
 
-interface NotificationData {
-  id?: string
-  userId: string
-  type: 'expense_submitted' | 'expense_approved' | 'expense_rejected' | 'comment_added'
-  title: string
-  message: string
-  link?: string
-  read?: boolean
-  createdAt?: string
-}
+export async function sendNotification(to: string, subject: string, html: string, notification: Partial<Notification>) {
+  const response = await fetch('/api/notifications/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ to, subject, html, notification }),
+  });
 
-// Save notification to database
-async function saveNotification(data: NotificationData) {
-  const { error } = await supabase
-    .from('notifications')
-    .insert({
-      ...data,
-      read: false,
-      created_at: new Date().toISOString()
-    })
-
-  if (error) throw error
-}
-
-// Send email notification
-async function sendEmail(
-  to: string,
-  subject: string,
-  html: string
-) {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SendGrid API key not found. Skipping email notification.')
-    return
+  if (!response.ok) {
+    throw new Error('Failed to send notification');
   }
 
-  try {
-    await sgMail.send({
-      to,
-      from: process.env.SENDGRID_FROM_EMAIL!,
-      subject,
-      html
-    })
-  } catch (error) {
-    console.error('Error sending email:', error)
-    throw error
-  }
+  return response.json();
 }
 
-// Get user's email template preferences
-async function getUserEmailPreferences(userId: string) {
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .select('email_notifications')
-    .eq('user_id', userId)
-    .single()
-
-  if (error) throw error
-  return data?.email_notifications || {}
-}
-
-// Notify user about expense submission
-export async function notifyExpenseSubmitted(
-  expense: any,
-  submitter: ExpenseUser,
-  approver: ExpenseUser
-) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-
-  // Create notification data
-  const notificationData: NotificationData = {
-    userId: approver.id,
-    type: 'expense_submitted',
-    title: 'New Expense Submission',
-    message: `${submitter.full_name} has submitted a ${expense.type} expense for ${expense.currency} ${expense.totalAmount} for your approval.`,
-    link: `${baseUrl}/approvals/${expense.id}`
-  }
-
-  try {
-    // Save notification
-    await saveNotification(notificationData)
-
-    // Check if user wants email notifications
-    const preferences = await getUserEmailPreferences(approver.id)
-    if (preferences.expense_submitted) {
-      // Send email
-      const emailHtml = `
-        <h2>New Expense Submission</h2>
-        <p>${notificationData.message}</p>
-        <p>Click <a href="${notificationData.link}">here</a> to review the expense.</p>
-      `
-
-      await sendEmail(
-        approver.email,
-        notificationData.title,
-        emailHtml
-      )
-    }
-  } catch (error) {
-    console.error('Error sending notification:', error)
-    throw error
-  }
-}
-
-// Notify user about expense approval/rejection
-export async function notifyExpenseStatus(
-  expense: any,
-  submitter: ExpenseUser,
-  approver: ExpenseUser,
-  status: 'approved' | 'rejected',
-  comment?: string
-) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-
-  // Create notification data
-  const notificationData: NotificationData = {
-    userId: submitter.id,
-    type: status === 'approved' ? 'expense_approved' : 'expense_rejected',
-    title: `Expense ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-    message: `Your ${expense.type} expense for ${expense.currency} ${expense.totalAmount} has been ${status} by ${approver.full_name}${comment ? `: ${comment}` : '.'}`,
-    link: `${baseUrl}/expenses/${expense.id}`
-  }
-
-  try {
-    // Save notification
-    await saveNotification(notificationData)
-
-    // Check if user wants email notifications
-    const preferences = await getUserEmailPreferences(submitter.id)
-    if (preferences[`expense_${status}`]) {
-      // Send email
-      const emailHtml = `
-        <h2>Expense ${status.charAt(0).toUpperCase() + status.slice(1)}</h2>
-        <p>${notificationData.message}</p>
-        <p>Click <a href="${notificationData.link}">here</a> to view the expense.</p>
-      `
-
-      await sendEmail(
-        submitter.email,
-        notificationData.title,
-        emailHtml
-      )
-    }
-  } catch (error) {
-    console.error('Error sending notification:', error)
-    throw error
-  }
-}
-
-// Get user's unread notifications
-export async function getUnreadNotifications(userId: string) {
+export async function getUnreadNotifications(userId: string): Promise<Notification[]> {
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
-    .eq('read', false)
-    .order('created_at', { ascending: false })
+    .is('read_at', null)
+    .order('created_at', { ascending: false });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
-// Mark notification as read
-export async function markNotificationRead(notificationId: string) {
+export async function markNotificationRead(notificationId: string): Promise<void> {
   const { error } = await supabase
     .from('notifications')
-    .update({ read: true })
-    .eq('id', notificationId)
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId);
 
-  if (error) throw error
+  if (error) throw error;
 }
 
-// Mark all notifications as read
-export async function markAllNotificationsRead(userId: string) {
+export async function markAllNotificationsRead(userId: string): Promise<void> {
   const { error } = await supabase
     .from('notifications')
-    .update({ read: true })
+    .update({ read_at: new Date().toISOString() })
     .eq('user_id', userId)
-    .eq('read', false)
+    .is('read_at', null);
 
-  if (error) throw error
+  if (error) throw error;
+}
+
+export async function notifyExpenseSubmitted(expense: any, submitter: any, approver: any) {
+  const subject = `New Expense Submission from ${submitter.full_name}`;
+  const html = `
+    <h2>New Expense Submission</h2>
+    <p>A new expense has been submitted for your approval:</p>
+    <ul>
+      <li>Submitter: ${submitter.full_name}</li>
+      <li>Amount: ${expense.currency} ${expense.totalAmount}</li>
+      <li>Type: ${expense.type}</li>
+      <li>Description: ${expense.description}</li>
+    </ul>
+    <p>Please review and take action on this expense.</p>
+  `;
+
+  return sendNotification(approver.email, subject, html, {
+    userId: approver.id,
+    type: 'expense_submitted',
+    title: subject,
+    content: html,
+    metadata: { expenseId: expense.id, submitterId: submitter.id }
+  });
+}
+
+export async function notifyExpenseStatus(expense: any, submitter: any, approver: any, status: 'approved' | 'rejected', comment?: string) {
+  const subject = `Expense ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+  const html = `
+    <h2>Expense ${status.charAt(0).toUpperCase() + status.slice(1)}</h2>
+    <p>Your expense submission has been ${status}:</p>
+    <ul>
+      <li>Amount: ${expense.currency} ${expense.totalAmount}</li>
+      <li>Type: ${expense.type}</li>
+      <li>Description: ${expense.description}</li>
+      ${comment ? `<li>Comment: ${comment}</li>` : ''}
+    </ul>
+    <p>Approved by: ${approver.full_name}</p>
+  `;
+
+  return sendNotification(submitter.email, subject, html, {
+    userId: submitter.id,
+    type: `expense_${status}`,
+    title: subject,
+    content: html,
+    metadata: { expenseId: expense.id, approverId: approver.id, comment }
+  });
 } 
