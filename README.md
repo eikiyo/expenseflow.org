@@ -48,7 +48,7 @@ A comprehensive, auditable, and user-friendly expense management platform that m
    
    Update `.env.local` with your actual Supabase credentials:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_URL=https://jbkzcjdqbuhgxahhzkno.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key

@@ -7,15 +7,14 @@ Your Supabase database is currently set up for a different project (news/article
 ## 📋 Quick Setup (Copy & Paste in Supabase SQL Editor)
 
 ### Step 1: Go to your Supabase Dashboard
-1. Open [supabase.com/dashboard](https://supabase.com/dashboard)
-2. Select your project: `jbkzcjdqbuhgxahhzkno`
-3. Go to **SQL Editor** in the left sidebar
+1. Open [https://jbkzcjdqbuhgxahhzkno.supabase.co](https://jbkzcjdqbuhgxahhzkno.supabase.co)
+2. Go to **SQL Editor** in the left sidebar (or use [supabase.com/dashboard](https://supabase.com/dashboard))
 
-### Step 2: Run This SQL (Copy the entire block)
+### Step 2: Run This SAFE SQL (Copy the entire block)
 
 ```sql
 -- ==========================================
--- EXPENSEFLOW DATABASE SETUP
+-- EXPENSEFLOW DATABASE SETUP (SAFE VERSION)
 -- ==========================================
 
 -- 1. CREATE PROFILES TABLE
@@ -78,7 +77,15 @@ CREATE TABLE IF NOT EXISTS expenses (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
--- 4. CREATE POLICIES FOR PROFILES
+-- 4. DROP EXISTING POLICIES IF THEY EXIST
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can view their own expenses" ON expenses;
+DROP POLICY IF EXISTS "Users can create their own expenses" ON expenses;
+DROP POLICY IF EXISTS "Users can update their own expenses" ON expenses;
+
+-- 5. CREATE POLICIES FOR PROFILES
 CREATE POLICY "Users can view their own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
@@ -88,7 +95,7 @@ CREATE POLICY "Users can update their own profile" ON profiles
 CREATE POLICY "Users can insert their own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
--- 5. CREATE POLICIES FOR EXPENSES
+-- 6. CREATE POLICIES FOR EXPENSES
 CREATE POLICY "Users can view their own expenses" ON expenses
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -98,7 +105,7 @@ CREATE POLICY "Users can create their own expenses" ON expenses
 CREATE POLICY "Users can update their own expenses" ON expenses
   FOR UPDATE USING (auth.uid() = user_id);
 
--- 6. CREATE UPDATED_AT TRIGGER FUNCTION
+-- 7. CREATE UPDATED_AT TRIGGER FUNCTION (SAFE)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -107,14 +114,18 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- 7. CREATE TRIGGERS
+-- 8. DROP EXISTING TRIGGERS IF THEY EXIST
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+DROP TRIGGER IF EXISTS update_expenses_updated_at ON expenses;
+
+-- 9. CREATE TRIGGERS
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_expenses_updated_at BEFORE UPDATE ON expenses
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- 8. CREATE INDEXES
+-- 10. CREATE INDEXES (SAFE)
 CREATE INDEX IF NOT EXISTS profiles_email_idx ON profiles(email);
 CREATE INDEX IF NOT EXISTS profiles_role_idx ON profiles(role);
 CREATE INDEX IF NOT EXISTS expenses_user_id_idx ON expenses(user_id);
@@ -130,13 +141,13 @@ CREATE INDEX IF NOT EXISTS expenses_start_date_idx ON expenses(start_date);
 2. ✅ You should see "Success. No rows returned" 
 3. ✅ The app should now work properly!
 
-## 🔧 Alternative: Manual Step-by-Step
+## 🚨 **Alternative: Minimal Fix (Just Profiles Table)**
 
-If the above doesn't work, run these one at a time:
+If you're still getting errors, try this minimal version that only creates what's needed:
 
-### Create Profiles Table:
 ```sql
-CREATE TABLE profiles (
+-- MINIMAL SETUP - JUST CREATE PROFILES TABLE
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT NOT NULL,
@@ -148,15 +159,12 @@ CREATE TABLE profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-```
 
-### Enable RLS:
-```sql
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-```
 
-### Create Policies:
-```sql
+DROP POLICY IF EXISTS "Users can view their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+
 CREATE POLICY "Users can view their own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 

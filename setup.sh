@@ -39,7 +39,7 @@ if [ ! -f .env.local ]; then
     echo "🔧 Creating .env.local template..."
     cat > .env.local << EOL
 # Supabase Configuration - REPLACE WITH YOUR ACTUAL VALUES
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_URL=https://jbkzcjdqbuhgxahhzkno.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_SUPABASE_PROJECT_ID=your_supabase_project_id
