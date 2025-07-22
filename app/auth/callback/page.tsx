@@ -61,12 +61,57 @@ export default function AuthCallback() {
       return
     }
 
-    Logger.auth.info('OAuth code found, waiting for session', {
+    Logger.auth.info('OAuth code found, attempting manual exchange', {
       meta: { codeLength: code.length }
     })
-    setStatus('OAuth code received, processing...')
+    setStatus('OAuth code received, exchanging for session...')
 
-    // Listen for auth state changes
+    // Try manual OAuth code exchange
+    const exchangeCode = async () => {
+      try {
+        Logger.auth.info('Attempting manual OAuth code exchange')
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (error) {
+          Logger.auth.error('Manual code exchange failed', {
+            message: error.message,
+            meta: { code: error.name, status: error.status }
+          })
+          setStatus(`Code exchange failed: ${error.message}`)
+          setTimeout(() => {
+            router.push('/?auth_error=exchange_failed&message=' + encodeURIComponent(error.message))
+          }, 3000)
+          return
+        }
+
+        if (data.session) {
+          Logger.auth.info('Manual code exchange successful', {
+            meta: { 
+              userId: data.session.user.id,
+              email: data.session.user.email
+            }
+          })
+          setStatus('Session created successfully!')
+          setTimeout(() => {
+            router.push('/')
+          }, 1000)
+        } else {
+          Logger.auth.warn('Code exchange succeeded but no session returned')
+          setStatus('No session returned from exchange')
+        }
+      } catch (err: any) {
+        Logger.auth.error('Exception during code exchange', {
+          message: err.message,
+          meta: { error: err }
+        })
+        setStatus(`Exchange error: ${err.message}`)
+      }
+    }
+
+    // Try manual exchange first
+    exchangeCode()
+
+    // Also listen for auth state changes as backup
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       Logger.auth.info('Auth state changed in callback', {
         meta: { event, hasSession: !!session }
@@ -118,7 +163,7 @@ export default function AuthCallback() {
     }
 
     // Check session after a short delay
-    setTimeout(checkSession, 1000)
+    setTimeout(checkSession, 2000)
 
     return () => {
       subscription.unsubscribe()
