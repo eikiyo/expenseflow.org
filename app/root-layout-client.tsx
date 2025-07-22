@@ -1,17 +1,22 @@
-'use client'
+'use client';
 
-import { AuthProvider } from './providers/auth-provider'
-import { ExpenseProvider } from './providers/expense-provider'
-import { RouteGuard } from './components/auth/RouteGuard'
-import { Toaster } from 'react-hot-toast'
+import { AuthProvider } from './providers/auth-provider';
+import { ExpenseProvider } from './providers/expense-provider';
+import { RouteGuard } from './components/auth/RouteGuard';
+import { Toaster } from 'react-hot-toast';
+import type { Session } from '@supabase/auth-helpers-nextjs';
+
+interface RootLayoutClientProps {
+  children: React.ReactNode;
+  serverSession: Session | null;
+}
 
 export function RootLayoutClient({
   children,
-}: {
-  children: React.ReactNode
-}) {
+  serverSession,
+}: RootLayoutClientProps) {
   return (
-    <AuthProvider>
+    <AuthProvider initialSession={serverSession}>
       <RouteGuard>
         <ExpenseProvider>
           <div className="min-h-screen bg-gray-50">
@@ -30,5 +35,5 @@ export function RootLayoutClient({
         </ExpenseProvider>
       </RouteGuard>
     </AuthProvider>
-  )
+  );
 } 

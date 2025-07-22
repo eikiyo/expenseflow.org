@@ -1,32 +1,33 @@
-import { Inter } from 'next/font/google'
-import { RootLayoutClient } from './root-layout-client'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import './globals.css';
+import { RootLayoutClient } from './root-layout-client';
+import { headers, cookies } from 'next/headers';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export const metadata = {
-  title: 'ExpenseFlow - Travel & Petty Expense Management',
-  description: 'Comprehensive expense management platform for travel, maintenance, and requisition expenses',
-}
+  title: 'ExpenseFlow',
+  description: 'Streamline your expense management',
+};
 
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: '#2563eb',
-}
+export const dynamic = 'force-dynamic';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
+  const supabase = createServerComponentClient({ cookies });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <RootLayoutClient>
+      <body>
+        <RootLayoutClient serverSession={session}>
           {children}
         </RootLayoutClient>
       </body>
     </html>
-  )
+  );
 } 
