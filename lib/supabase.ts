@@ -113,9 +113,9 @@ export const signInWithGoogle = async () => {
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
-export type Expense = Database['public']['Tables']['expenses']['Row'];
+export type Expense = Database['public']['Tables']['expense_submissions']['Row'];
 export type Attachment = Database['public']['Tables']['attachments']['Row'];
-export type Approval = Database['public']['Tables']['approvals']['Row'];
+export type Approval = Database['public']['Tables']['expense_approvals']['Row'];
 
 export const signOut = async () => {
   Logger.auth.info('Signing out')
@@ -162,7 +162,7 @@ export const getUserExpenses = async (
   const supabase = getSupabaseClient();
   
   let query = supabase
-    .from('expenses')
+    .from('expense_submissions')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -197,11 +197,11 @@ export const getUserExpenses = async (
  * @param expense - The expense data to insert
  * @returns Promise<Expense | null>
  */
-export const createExpense = async (expense: Database['public']['Tables']['expenses']['Insert']) => {
+export const createExpense = async (expense: Database['public']['Tables']['expense_submissions']['Insert']) => {
   Logger.db.debug('Creating expense', { meta: expense })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from('expenses')
+    .from('expense_submissions')
     .insert(expense)
     .select()
     .single()
@@ -228,7 +228,7 @@ export const updateExpense = async (id: string, updates: Partial<Expense>) => {
   Logger.db.debug('Updating expense', { meta: { id, updates } })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from('expenses')
+    .from('expense_submissions')
     .update(updates)
     .eq('id', id)
     .select()
@@ -256,10 +256,10 @@ export const getExpensesForApproval = async (approverId: string): Promise<Expens
   const supabase = getSupabaseClient();
   
   const { data, error } = await supabase
-    .from('expenses')
+    .from('expense_submissions')
     .select(`
       *,
-      profiles!expenses_user_id_fkey (
+      profiles!expense_submissions_user_id_fkey (
         id,
         full_name,
         email,
@@ -325,10 +325,10 @@ export const getExpenseApprovals = async (expenseId: string): Promise<Approval[]
   const supabase = getSupabaseClient();
   
   const { data, error } = await supabase
-    .from('approvals')
+    .from('expense_approvals')
     .select(`
       *,
-      profiles!approvals_approver_id_fkey (
+      profiles!expense_approvals_approver_id_fkey (
         id,
         full_name,
         email,

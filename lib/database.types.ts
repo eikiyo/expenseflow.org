@@ -39,6 +39,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      attachments: {
+        Row: {
+          expense_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_at: string
+        }
+        Insert: {
+          expense_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+        }
+        Update: {
+          expense_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_approvals: {
         Row: {
           approver_id: string
