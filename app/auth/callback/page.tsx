@@ -61,57 +61,13 @@ export default function AuthCallback() {
       return
     }
 
-    Logger.auth.info('OAuth code found, attempting manual exchange', {
+    Logger.auth.info('OAuth code found, waiting for automatic processing', {
       meta: { codeLength: code.length }
     })
-    setStatus('OAuth code received, exchanging for session...')
+    setStatus('OAuth code received, processing automatically...')
 
-    // Try manual OAuth code exchange
-    const exchangeCode = async () => {
-      try {
-        Logger.auth.info('Attempting manual OAuth code exchange')
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        
-        if (error) {
-          Logger.auth.error('Manual code exchange failed', {
-            message: error.message,
-            meta: { code: error.name, status: error.status }
-          })
-          setStatus(`Code exchange failed: ${error.message}`)
-          setTimeout(() => {
-            router.push('/?auth_error=exchange_failed&message=' + encodeURIComponent(error.message))
-          }, 3000)
-          return
-        }
-
-        if (data.session) {
-          Logger.auth.info('Manual code exchange successful', {
-            meta: { 
-              userId: data.session.user.id,
-              email: data.session.user.email
-            }
-          })
-          setStatus('Session created successfully!')
-          setTimeout(() => {
-            router.push('/')
-          }, 1000)
-        } else {
-          Logger.auth.warn('Code exchange succeeded but no session returned')
-          setStatus('No session returned from exchange')
-        }
-      } catch (err: any) {
-        Logger.auth.error('Exception during code exchange', {
-          message: err.message,
-          meta: { error: err }
-        })
-        setStatus(`Exchange error: ${err.message}`)
-      }
-    }
-
-    // Try manual exchange first
-    exchangeCode()
-
-    // Also listen for auth state changes as backup
+    // Let Supabase handle the OAuth flow automatically
+    // This will use the stored PKCE code verifier from the initial request
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       Logger.auth.info('Auth state changed in callback', {
         meta: { event, hasSession: !!session }
@@ -132,10 +88,21 @@ export default function AuthCallback() {
       } else if (event === 'TOKEN_REFRESHED') {
         Logger.auth.info('Token refreshed')
         setStatus('Token refreshed, checking session...')
+      } else if (event === 'INITIAL_SESSION') {
+        if (session) {
+          Logger.auth.info('Initial session found, redirecting')
+          setStatus('Session found!')
+          setTimeout(() => {
+            router.push('/')
+          }, 1000)
+        } else {
+          Logger.auth.warn('Initial session event but no session')
+          setStatus('No session in initial event')
+        }
       }
     })
 
-    // Also try to get the current session
+    // Also try to get the current session after a delay
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
@@ -145,14 +112,14 @@ export default function AuthCallback() {
             meta: { code: error.name }
           })
         } else if (session) {
-          Logger.auth.info('Session found, redirecting')
+          Logger.auth.info('Session found via getSession, redirecting')
           setStatus('Session found!')
           setTimeout(() => {
             router.push('/')
           }, 1000)
         } else {
-          Logger.auth.info('No session found, waiting for auth state change')
-          setStatus('No session yet, waiting...')
+          Logger.auth.info('No session found via getSession, waiting...')
+          setStatus('No session yet, waiting for auth state change...')
         }
       } catch (err: any) {
         Logger.auth.error('Error checking session', {
@@ -162,11 +129,21 @@ export default function AuthCallback() {
       }
     }
 
-    // Check session after a short delay
+    // Check session after a delay
     setTimeout(checkSession, 2000)
+
+    // Set a timeout to redirect if nothing happens
+    const timeout = setTimeout(() => {
+      Logger.auth.warn('OAuth callback timeout, redirecting to login')
+      setStatus('Authentication timeout')
+      setTimeout(() => {
+        router.push('/?auth_error=timeout')
+      }, 1000)
+    }, 10000) // 10 second timeout
 
     return () => {
       subscription.unsubscribe()
+      clearTimeout(timeout)
     }
   }, [router])
 
