@@ -4,7 +4,7 @@
  * This file sets up a singleton Supabase client using the SSR package.
  * Uses @supabase/ssr for better session handling and cookie compatibility.
  * 
- * Dependencies: @supabase/ssr, @/lib/config
+ * Dependencies: @supabase/ssr
  * Used by: All components and services requiring database access
  * 
  * @author ExpenseFlow Team
@@ -37,9 +37,11 @@ export const getSupabaseClient = () => {
     }
 
     Logger.debug('Creating Supabase client', {
-      url: supabaseUrl,
-      environment: process.env.NODE_ENV,
-      vercelEnv: process.env.VERCEL_ENV
+      meta: {
+        url: supabaseUrl,
+        environment: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV
+      }
     })
 
     supabaseInstance = createBrowserClient<Database>(
@@ -50,7 +52,7 @@ export const getSupabaseClient = () => {
     Logger.info('Supabase client created successfully')
     return supabaseInstance;
   } catch (error) {
-    Logger.error('Failed to create Supabase client', { error })
+    Logger.error('Failed to create Supabase client', { meta: { error } })
     throw error;
   }
 };
@@ -67,9 +69,11 @@ export const signInWithGoogle = async () => {
   const redirectTo = getOAuthCallbackUrl();
   
   Logger.auth.info('Initiating Google OAuth sign in', {
-    redirectTo,
-    environment: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV
+    meta: {
+      redirectTo,
+      environment: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV
+    }
   });
   
   // Let Supabase handle the entire OAuth flow
@@ -85,7 +89,7 @@ export const signInWithGoogle = async () => {
   });
 
   if (error) {
-    Logger.auth.error('Google OAuth sign in failed', { error })
+    Logger.auth.error('Google OAuth sign in failed', { meta: { error } })
     throw error;
   }
   if (!data.url) {
@@ -93,7 +97,7 @@ export const signInWithGoogle = async () => {
     throw new Error('No OAuth URL returned');
   }
 
-  Logger.auth.info('OAuth URL received, redirecting', { url: data.url })
+  Logger.auth.info('OAuth URL received, redirecting', { meta: { url: data.url } })
   // Redirect to the OAuth URL
   window.location.href = data.url;
 };
@@ -102,13 +106,22 @@ export const signInWithGoogle = async () => {
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+export type Expense = Database['public']['Tables']['expenses']['Row'];
+
+export interface ExpenseSubmission extends Expense {
+  readonly id: string;
+  user_id: string;
+  created_at: string;
+  type: 'travel' | 'maintenance' | 'requisition';
+  // Base expense fields inherited from Expense type
+}
 
 export const signOut = async () => {
   Logger.auth.info('Signing out')
   const supabase = getSupabaseClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
-    Logger.auth.error('Sign out failed', { error })
+    Logger.auth.error('Sign out failed', { meta: { error } })
     throw error;
   }
   Logger.auth.info('Signed out successfully')
@@ -120,8 +133,10 @@ export const getCurrentUser = async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) {
     Logger.auth.debug('Current user found', {
-      userId: session.user.id,
-      email: session.user.email
+      meta: {
+        userId: session.user.id,
+        email: session.user.email
+      }
     })
   } else {
     Logger.auth.debug('No current user found')
@@ -129,81 +144,96 @@ export const getCurrentUser = async () => {
   return session?.user || null
 }
 
-// Database Functions
-export const getUserSubmissions = async (userId: string) => {
-  Logger.debug('Fetching user submissions', { userId })
-  const supabase = getSupabaseClient()
+/**
+ * Retrieves all expense submissions for a specific user, ordered by creation date.
+ * Logs the operation and returns an array of submissions or an empty array on error.
+ * @param userId - The ID of the user whose submissions to fetch
+ * @returns Promise<ExpenseSubmission[]>
+ */
+export const getUserSubmissions = async (userId: string): Promise<ExpenseSubmission[]> => {
+  Logger.db.debug('Fetching user submissions', { meta: { userId } });
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
-    .from('expense_submissions')
-    .select(`
-      *,
-      travel_expenses(*),
-      maintenance_expenses(*),
-      requisition_expenses(*)
-    `)
+    .from('expenses')
+    .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) {
-    Logger.error('Error fetching user submissions', { error })
-    return []
+    Logger.db.error('Error fetching user submissions', { 
+      message: error.message, 
+      meta: { 
+        code: error.code,
+        userId 
+      } 
+    });
+    return [];
   }
 
-  Logger.debug('User submissions fetched', { count: data?.length })
-  return data
-}
+  Logger.db.debug('User submissions fetched', { meta: { userId, count: data?.length ?? 0 } });
+  return (data ?? []) as ExpenseSubmission[];
+};
 
-export const createExpenseSubmission = async (submission: any) => {
-  Logger.debug('Creating expense submission', submission)
+export const createExpenseSubmission = async (submission: Partial<ExpenseSubmission>) => {
+  Logger.db.debug('Creating expense submission', { meta: submission })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from('expense_submissions')
+    .from('expenses')
     .insert(submission)
     .select()
     .single()
 
   if (error) {
-    Logger.error('Error creating expense submission', { error })
+    Logger.db.error('Error creating expense submission', { 
+      message: error.message,
+      meta: { code: error.code }
+    })
     return null
   }
 
-  Logger.debug('Expense submission created', { id: data?.id })
-  return data
+  Logger.db.debug('Expense submission created', { meta: { id: data?.id } })
+  return data as ExpenseSubmission
 }
 
-export const updateExpenseSubmission = async (id: string, updates: any) => {
-  Logger.debug('Updating expense submission', { id, updates })
+export const updateExpenseSubmission = async (id: string, updates: Partial<ExpenseSubmission>) => {
+  Logger.db.debug('Updating expense submission', { meta: { id, updates } })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from('expense_submissions')
+    .from('expenses')
     .update(updates)
     .eq('id', id)
     .select()
     .single()
 
   if (error) {
-    Logger.error('Error updating expense submission', { error })
+    Logger.db.error('Error updating expense submission', { 
+      message: error.message,
+      meta: { code: error.code }
+    })
     return null
   }
 
-  Logger.debug('Expense submission updated', { id: data?.id })
-  return data
+  Logger.db.debug('Expense submission updated', { meta: { id: data?.id } })
+  return data as ExpenseSubmission
 }
 
 // File upload helper
 export const uploadFile = async (bucket: string, path: string, file: File) => {
-  Logger.debug('Uploading file', { bucket, path, fileName: file.name })
+  Logger.debug('Uploading file', { meta: { bucket, path, fileName: file.name } })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.storage
     .from(bucket)
     .upload(path, file)
 
   if (error) {
-    Logger.error('Error uploading file', { error })
+    Logger.error('Error uploading file', { 
+      message: error.message,
+      meta: { name: error.name }
+    })
     return null
   }
 
-  Logger.debug('File uploaded successfully', { path: data?.path })
+  Logger.debug('File uploaded successfully', { meta: { path: data?.path } })
   return data
 }
 

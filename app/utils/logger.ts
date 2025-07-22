@@ -16,87 +16,67 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 interface LogOptions {
   level?: LogLevel
   module?: string
+  meta?: Record<string, any>
+  message?: string
   data?: Record<string, any>
 }
 
-// Enable debug mode in development
-const DEBUG = process.env.NODE_ENV === 'development'
-
 export class Logger {
   private static formatMessage(message: string, options: LogOptions = {}) {
-    const timestamp = new Date().toISOString()
-    const module = options.module ? `[${options.module}]` : ''
-    return `${timestamp} ${module} ${message}`
-  }
-
-  private static formatData(data: any): string {
-    try {
-      return JSON.stringify(data, null, 2)
-    } catch (error) {
-      return String(data)
-    }
+    const { level = 'info', module = '', meta, data } = options;
+    const timestamp = new Date().toISOString();
+    const metaStr = meta ? ` meta=${JSON.stringify(meta)}` : '';
+    const dataStr = data ? ` data=${JSON.stringify(data)}` : '';
+    return `[${timestamp}] [${level.toUpperCase()}]${module ? ` [${module}]` : ''} ${message}${metaStr}${dataStr}`;
   }
 
   static debug(message: string, options: LogOptions = {}) {
-    if (!DEBUG) return
-    const formattedMessage = this.formatMessage(message, { ...options, level: 'debug' })
-    console.debug(
-      '%c🔍 DEBUG%c %s',
-      'color: #6B7280; font-weight: bold',
-      'color: inherit',
-      formattedMessage,
-      options.data ? '\n' + this.formatData(options.data) : ''
-    )
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(this.formatMessage(message, { ...options, level: 'debug' }));
+    }
   }
 
   static info(message: string, options: LogOptions = {}) {
-    const formattedMessage = this.formatMessage(message, { ...options, level: 'info' })
-    console.log(
-      '%c✅ INFO%c %s',
-      'color: #10B981; font-weight: bold',
-      'color: inherit',
-      formattedMessage,
-      options.data ? '\n' + this.formatData(options.data) : ''
-    )
+    console.info(this.formatMessage(message, { ...options, level: 'info' }));
   }
 
   static warn(message: string, options: LogOptions = {}) {
-    const formattedMessage = this.formatMessage(message, { ...options, level: 'warn' })
-    console.warn(
-      '%c⚠️ WARN%c %s',
-      'color: #F59E0B; font-weight: bold',
-      'color: inherit',
-      formattedMessage,
-      options.data ? '\n' + this.formatData(options.data) : ''
-    )
+    console.warn(this.formatMessage(message, { ...options, level: 'warn' }));
   }
 
   static error(message: string, options: LogOptions = {}) {
-    const formattedMessage = this.formatMessage(message, { ...options, level: 'error' })
-    console.error(
-      '%c❌ ERROR%c %s',
-      'color: #EF4444; font-weight: bold',
-      'color: inherit',
-      formattedMessage,
-      options.data ? '\n' + this.formatData(options.data) : ''
-    )
+    console.error(this.formatMessage(message, { ...options, level: 'error' }));
   }
 
-  // Auth specific logging
   static auth = {
-    debug: (message: string, data?: any) => Logger.debug(message, { module: 'Auth', data }),
-    info: (message: string, data?: any) => Logger.info(message, { module: 'Auth', data }),
-    warn: (message: string, data?: any) => Logger.warn(message, { module: 'Auth', data }),
-    error: (message: string, data?: any) => Logger.error(message, { module: 'Auth', data })
-  }
+    debug: (message: string, options: LogOptions = {}) => {
+      Logger.debug(message, { ...options, module: 'auth' });
+    },
+    info: (message: string, options: LogOptions = {}) => {
+      Logger.info(message, { ...options, module: 'auth' });
+    },
+    warn: (message: string, options: LogOptions = {}) => {
+      Logger.warn(message, { ...options, module: 'auth' });
+    },
+    error: (message: string, options: LogOptions = {}) => {
+      Logger.error(message, { ...options, module: 'auth' });
+    }
+  };
 
-  // Profile specific logging
-  static profile = {
-    debug: (message: string, data?: any) => Logger.debug(message, { module: 'Profile', data }),
-    info: (message: string, data?: any) => Logger.info(message, { module: 'Profile', data }),
-    warn: (message: string, data?: any) => Logger.warn(message, { module: 'Profile', data }),
-    error: (message: string, data?: any) => Logger.error(message, { module: 'Profile', data })
-  }
+  static db = {
+    debug: (message: string, options: LogOptions = {}) => {
+      Logger.debug(message, { ...options, module: 'db' });
+    },
+    info: (message: string, options: LogOptions = {}) => {
+      Logger.info(message, { ...options, module: 'db' });
+    },
+    warn: (message: string, options: LogOptions = {}) => {
+      Logger.warn(message, { ...options, module: 'db' });
+    },
+    error: (message: string, options: LogOptions = {}) => {
+      Logger.error(message, { ...options, module: 'db' });
+    }
+  };
 }
 
 export default Logger; 
