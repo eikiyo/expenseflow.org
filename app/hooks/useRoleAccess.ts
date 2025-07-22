@@ -4,7 +4,7 @@
  * This hook provides role-based access control functionality.
  * Handles permission checks and role-based UI rendering.
  * 
- * Dependencies: auth-provider
+ * Dependencies: auth-provider, useUserProfile hook
  * Used by: All components requiring role-based access control
  * 
  * @author ExpenseFlow Team
@@ -12,6 +12,7 @@
  */
 
 import { useAuth } from '@/app/providers/auth-provider'
+import { useUserProfile } from '@/app/hooks/useUserProfile'
 
 // Role hierarchy (higher index = more permissions)
 const ROLE_HIERARCHY = ['user', 'manager', 'admin'] as const
@@ -29,15 +30,16 @@ interface RoleAccess {
 }
 
 export function useRoleAccess(): RoleAccess {
-  const { userProfile } = useAuth()
+  const { user } = useAuth()
+  const { profile } = useUserProfile()
 
   // Get role level in hierarchy
   const getRoleLevel = (role: Role) => ROLE_HIERARCHY.indexOf(role)
-  const userRoleLevel = userProfile?.role ? getRoleLevel(userProfile.role as Role) : -1
+  const userRoleLevel = profile?.role ? getRoleLevel(profile.role as Role) : -1
 
   // Check if user has a specific role
   const hasRole = (role: Role): boolean => {
-    return userProfile?.role === role
+    return profile?.role === role
   }
 
   // Check if user has any of the specified roles
@@ -53,14 +55,14 @@ export function useRoleAccess(): RoleAccess {
 
   // Check if user can approve an expense of given amount
   const canApproveExpense = (amount: number): boolean => {
-    if (!userProfile) return false
+    if (!profile) return false
 
     // Admins can approve any amount
-    if (userProfile.role === 'admin') return true
+    if (profile.role === 'admin') return true
 
     // Managers can approve up to their limit
-    if (userProfile.role === 'manager') {
-      return amount <= (userProfile.expense_limit || 0)
+    if (profile.role === 'manager') {
+      return amount <= (profile.expense_limit || 0)
     }
 
     return false
@@ -68,7 +70,7 @@ export function useRoleAccess(): RoleAccess {
 
   // Check if user can access a specific route
   const canAccessRoute = (route: string): boolean => {
-    if (!userProfile) return false
+    if (!profile) return false
 
     // Define route access rules
     const routeRules: Record<string, Role[]> = {

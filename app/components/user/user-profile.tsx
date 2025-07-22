@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/app/providers/auth-provider';
+import { useUserProfile } from '@/app/hooks/useUserProfile';
 import { LoadingSpinner } from '../ui/loading-spinner';
 
 interface UserProfileProps {
@@ -10,25 +11,26 @@ interface UserProfileProps {
 }
 
 export function UserProfile({ onBack }: UserProfileProps) {
-  const { userProfile, loading } = useAuth();
+  const { user } = useAuth();
+  const { profile, loading } = useUserProfile();
   const [activeTab, setActiveTab] = useState('personal');
   const [editMode, setEditMode] = useState(false);
 
-  if (loading) {
+  if (loading || !user) {
     return <div className="flex justify-center items-center min-h-screen"><LoadingSpinner size="lg" /></div>;
   }
-  if (!userProfile) {
+  if (!profile) {
     return <div className="text-center py-8">User profile not found.</div>;
   }
 
-  // Map userProfile to the expected structure
+  // Map profile to the expected structure
   const userData = {
-    fullName: userProfile.full_name,
-    email: userProfile.email,
-    department: userProfile.department || '',
-    role: userProfile.role,
-    avatarUrl: userProfile.avatar_url || '/placeholder.jpg',
-    expenseLimit: userProfile.expense_limit || 0
+    fullName: profile.full_name,
+    email: profile.email,
+    department: profile.department || '',
+    role: profile.role,
+    avatarUrl: profile.avatar_url || '/placeholder.jpg',
+    expenseLimit: profile.expense_limit || 0
   };
 
   const handleSaveChanges = () => {

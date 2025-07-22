@@ -1,10 +1,10 @@
 /**
- * ROOT LAYOUT CLIENT
+ * SIMPLIFIED ROOT LAYOUT CLIENT
  * 
  * Client-side root layout component that wraps the app with providers.
- * Handles auth state and error boundaries.
+ * Uses simplified auth provider without complex session management.
  * 
- * Dependencies: react, @supabase/auth-helpers-nextjs
+ * Dependencies: react, simplified auth provider
  * Used by: Root layout
  * 
  * @author ExpenseFlow Team
@@ -15,17 +15,15 @@
 
 import { AuthProvider } from './providers/auth-provider';
 import { AuthErrorBoundary } from './components/auth/AuthErrorBoundary';
-import type { Session } from '@supabase/supabase-js';
 
 interface RootLayoutClientProps {
   children: React.ReactNode;
-  serverSession: Session | null;
 }
 
-export function RootLayoutClient({ children, serverSession }: RootLayoutClientProps) {
+export function RootLayoutClient({ children }: RootLayoutClientProps) {
   return (
     <AuthErrorBoundary>
-      <AuthProvider initialSession={serverSession}>
+      <AuthProvider>
         {children}
       </AuthProvider>
     </AuthErrorBoundary>
