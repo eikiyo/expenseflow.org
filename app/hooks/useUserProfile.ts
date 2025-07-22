@@ -4,7 +4,7 @@
  * This hook manages user profile data and creation separately from authentication.
  * Handles profile creation for new users and fetching for existing users.
  * 
- * Dependencies: @/lib/supabase, react, @/app/providers/auth-provider
+ * Dependencies: @/lib/supabase, react, @/app/providers/auth-provider, @/utils/logger
  * Used by: Main page component for profile management
  * 
  * @author ExpenseFlow Team
@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
 import { useAuth } from '@/app/providers/auth-provider'
 import type { Profile } from '@/lib/supabase'
+import Logger from '@/app/utils/logger'
 
 export function useUserProfile() {
   const { user } = useAuth()
@@ -40,7 +41,7 @@ export function useUserProfile() {
       updated_at: now
     }
 
-    console.log('🔄 Upserting user profile:', {
+    Logger.profile.info('Upserting user profile', {
       userId: userData.id,
       email: userData.email,
       metadata: userData.user_metadata
@@ -58,7 +59,7 @@ export function useUserProfile() {
       .single()
 
     if (error) {
-      console.error('❌ Profile upsert error:', {
+      Logger.profile.error('Profile upsert failed', {
         error,
         code: error.code,
         details: error.details,
@@ -67,14 +68,14 @@ export function useUserProfile() {
       return null
     }
 
-    console.log('✅ Profile upserted successfully:', data)
+    Logger.profile.info('Profile upserted successfully', data)
     return data
   }
 
   // Fetches existing profile from database
   // Returns profile data or null if not found
   const fetchProfile = async (userId: string) => {
-    console.log('🔍 Fetching user profile:', userId)
+    Logger.profile.info('Fetching user profile', { userId })
     
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
@@ -86,9 +87,9 @@ export function useUserProfile() {
     if (error) {
       // If profile doesn't exist, that's expected for new users
       if (error.code === 'PGRST116') {
-        console.log('ℹ️ No existing profile found - will create new one')
+        Logger.profile.info('No existing profile found - will create new one')
       } else {
-        console.error('❌ Profile fetch error:', {
+        Logger.profile.error('Profile fetch failed', {
           error,
           code: error.code,
           details: error.details,
@@ -98,7 +99,7 @@ export function useUserProfile() {
       return null
     }
 
-    console.log('✅ Found existing profile:', data)
+    Logger.profile.info('Found existing profile', data)
     return data
   }
 
@@ -112,6 +113,11 @@ export function useUserProfile() {
       setLoading(true)
       
       try {
+        Logger.profile.debug('Loading profile for user', {
+          userId: user.id,
+          email: user.email
+        })
+
         // Try to fetch existing profile
         let userProfile = await fetchProfile(user.id)
         
@@ -122,7 +128,7 @@ export function useUserProfile() {
         
         setProfile(userProfile)
       } catch (error) {
-        console.error('❌ Error loading profile:', error)
+        Logger.profile.error('Error loading profile', { error })
       } finally {
         setLoading(false)
       }

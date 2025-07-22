@@ -4,7 +4,7 @@
  * This component manages only authentication state with Google OAuth.
  * Profile management is handled separately by useUserProfile hook.
  * 
- * Dependencies: @/lib/supabase, react
+ * Dependencies: @/lib/supabase, react, @/utils/logger
  * Used by: Root layout client
  * 
  * @author ExpenseFlow Team
@@ -15,6 +15,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { getSupabaseClient } from '@/lib/supabase'
+import Logger from '@/app/utils/logger'
 
 interface User {
   id: string
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const signInWithGoogle = async () => {
-    console.log('🔄 Initiating Google sign in...')
+    Logger.auth.info('Initiating Google sign in')
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -49,21 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
     if (error) {
-      console.error('❌ Google sign in error:', error)
+      Logger.auth.error('Google sign in failed', { error })
       throw error
     }
+    Logger.auth.debug('OAuth redirect initiated')
   }
 
   const signOut = async () => {
-    console.log('🔄 Signing out...')
+    Logger.auth.info('Signing out')
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signOut()
     if (error) {
-      console.error('❌ Sign out error:', error)
+      Logger.auth.error('Sign out failed', { error })
       throw error
     }
     setUser(null)
-    console.log('✅ Signed out successfully')
+    Logger.auth.info('Signed out successfully')
   }
 
   useEffect(() => {
@@ -72,27 +74,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        console.log('🔄 Getting initial session...')
+        Logger.auth.info('Getting initial session')
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.error('❌ Error getting session:', error)
+          Logger.auth.error('Error getting session', { error })
           setLoading(false)
           return
         }
 
         if (session?.user) {
-          console.log('✅ Found existing session:', {
+          Logger.auth.info('Found existing session', {
             userId: session.user.id,
-            email: session.user.email
+            email: session.user.email,
+            provider: session.user.app_metadata?.provider,
+            lastSignIn: session.user.last_sign_in_at
           })
           setUser(session.user)
         } else {
-          console.log('ℹ️ No existing session found')
+          Logger.auth.info('No existing session found')
           setUser(null)
         }
       } catch (error) {
-        console.error('❌ Error initializing auth:', error)
+        Logger.auth.error('Error initializing auth', { error })
       } finally {
         setLoading(false)
       }
@@ -103,20 +107,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', {
+        Logger.auth.debug('Auth state changed', {
           event,
           userId: session?.user?.id,
-          email: session?.user?.email
+          email: session?.user?.email,
+          provider: session?.user?.app_metadata?.provider,
+          lastSignIn: session?.user?.last_sign_in_at
         })
 
         if (session?.user) {
-          console.log('✅ User authenticated:', {
+          Logger.auth.info('User authenticated', {
             userId: session.user.id,
-            email: session.user.email
+            email: session.user.email,
+            provider: session.user.app_metadata?.provider,
+            lastSignIn: session.user.last_sign_in_at
           })
           setUser(session.user)
         } else {
-          console.log('ℹ️ User not authenticated')
+          Logger.auth.info('User not authenticated')
           setUser(null)
         }
         setLoading(false)
@@ -124,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
 
     return () => {
-      console.log('🧹 Cleaning up auth subscriptions')
+      Logger.auth.debug('Cleaning up auth subscriptions')
       subscription.unsubscribe()
     }
   }, [])
