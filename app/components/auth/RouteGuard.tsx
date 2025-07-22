@@ -2,7 +2,7 @@
  * ROUTE GUARD COMPONENT
  * 
  * This component protects routes based on user roles.
- * Handles route access control and redirection.
+ * Handles route access control for authenticated users.
  * 
  * Dependencies: Next.js, useRoleAccess
  * Used by: Layout components
@@ -30,24 +30,21 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Skip check for public routes
-    if (pathname === '/auth/login' || pathname === '/auth/callback') {
+    // Skip check for public routes and home page
+    if (pathname === '/' || pathname === '/auth/callback') {
       return
     }
 
-    // Handle authentication check
-    if (!loading) {
-      if (!user) {
-        // Redirect to login if not authenticated
-        router.push('/auth/login')
-      } else if (!canAccessRoute(pathname)) {
-        // Redirect to dashboard if user doesn't have required role
-        router.push('/dashboard')
+    // Handle role-based access for authenticated users only
+    if (!loading && user) {
+      if (!canAccessRoute(pathname)) {
+        // Redirect to home if user doesn't have required role
+        router.push('/')
       }
     }
   }, [user, loading, pathname, router, canAccessRoute])
 
-  // Show loading state
+  // Show loading state during auth initialization
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -56,8 +53,9 @@ export function RouteGuard({ children }: RouteGuardProps) {
     )
   }
 
-  // Show children only if user has access
-  if (!user || !canAccessRoute(pathname)) {
+  // For unauthenticated users, let the main page handle showing LoginForm
+  // For authenticated users, check role-based access
+  if (user && pathname !== '/' && !canAccessRoute(pathname)) {
     return null
   }
 

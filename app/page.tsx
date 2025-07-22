@@ -14,7 +14,16 @@ export default function ExpenseSubmissionPlatform() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [expenseType, setExpenseType] = useState('');
 
+  // Debug logging
+  console.log('🔍 Main page render:', { 
+    authUser: !!authUser, 
+    userProfile: !!userProfile, 
+    loading,
+    userEmail: authUser?.email 
+  });
+
   if (loading) {
+    console.log('⏳ Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -24,8 +33,11 @@ export default function ExpenseSubmissionPlatform() {
 
   // Show login if not authenticated
   if (!authUser || !userProfile) {
+    console.log('🔐 Showing login form - no auth user or profile');
     return <LoginForm />
   }
+
+  console.log('✅ Showing dashboard for authenticated user');
 
   // Handle different views
   const renderCurrentView = () => {

@@ -17,7 +17,7 @@ export function RootLayoutClient({
 }: RootLayoutClientProps) {
   return (
     <AuthProvider initialSession={serverSession}>
-      <RouteGuard>
+      {/* <RouteGuard> */}
         <ExpenseProvider>
           <div className="min-h-screen bg-gray-50">
             {children}
@@ -33,7 +33,7 @@ export function RootLayoutClient({
             }}
           />
         </ExpenseProvider>
-      </RouteGuard>
+      {/* </RouteGuard> */}
     </AuthProvider>
   );
 } 
