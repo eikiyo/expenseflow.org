@@ -3,10 +3,10 @@ import { Header } from '../layout/Header';
 import { StatsCards } from '../layout/Dashboard/StatsCards';
 import { QuickActions } from '../layout/Dashboard/QuickActions';
 import { RecentActivity } from '../layout/Dashboard/RecentActivity';
-import { ExpenseUser } from '@/lib/supabase';
+import { Profile } from '@/lib/supabase';
 
 interface DashboardProps {
-  userProfile: ExpenseUser;
+  userProfile: Profile;
   onSignOut: () => void;
   onViewProfile: () => void;
   onViewSettings: () => void;
@@ -15,7 +15,7 @@ interface DashboardProps {
   onSelectExpenseType: (type: 'travel' | 'maintenance' | 'requisition') => void;
   onNewExpense: () => void;
   onViewAllActivity: () => void;
-  onViewActivity: (id: number) => void;
+  onViewActivity: (id: string) => void;
 }
 
 export function Dashboard({ 
@@ -67,7 +67,7 @@ export function Dashboard({
           <RecentActivity 
             activities={recentActivities}
             onViewAll={onViewAllActivity}
-            onViewActivity={onViewActivity}
+            onViewActivity={(id: number) => onViewActivity(String(id))}
           />
         </div>
       </div>

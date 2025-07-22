@@ -13,19 +13,28 @@
 
 'use client'
 
-import { Fragment } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { Menu, Transition } from '@headlessui/react';
-import { UserCircleIcon } from '@heroicons/react/24/solid';
-import { NotificationDropdown } from '../notifications/NotificationDropdown';
-import type { ExpenseUser } from '@/lib/supabase';
+import { Fragment } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { Menu, Transition } from '@headlessui/react'
+import {
+  UserCircleIcon,
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  BellIcon
+} from '@heroicons/react/24/outline'
+import { NotificationDropdown } from '../notifications/NotificationDropdown'
+import type { Profile } from '@/lib/supabase';
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface HeaderProps {
-  userProfile: ExpenseUser;
   onSignOut: () => void;
   onViewProfile: () => void;
   onViewSettings: () => void;
+  userProfile: Profile;
 }
 
 const navigation = [

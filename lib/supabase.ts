@@ -29,21 +29,12 @@ export const getSupabaseClient = () => {
   }
 }
 
-export interface ExpenseUser {
-  id: string
-  email: string
-  full_name: string
-  avatar_url?: string | null
-  department?: string | null
-  role: 'user' | 'manager' | 'admin'
-  manager_id?: string | null
-  expense_limit?: number | null
-  created_at?: string
-  updated_at?: string
-}
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 // Get user profile from database
-export async function getUserProfile(userId: string): Promise<ExpenseUser | null> {
+export async function getUserProfile(userId: string): Promise<Profile | null> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -56,7 +47,7 @@ export async function getUserProfile(userId: string): Promise<ExpenseUser | null
 }
 
 // Create user profile in database
-export async function createUserProfile(user: any): Promise<ExpenseUser | null> {
+export async function createUserProfile(user: any): Promise<Profile | null> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -77,8 +68,8 @@ export async function createUserProfile(user: any): Promise<ExpenseUser | null> 
 // Update user profile in database
 export async function updateUserProfile(
   userId: string,
-  updates: Partial<ExpenseUser>
-): Promise<ExpenseUser | null> {
+  updates: Partial<Profile>
+): Promise<Profile | null> {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')

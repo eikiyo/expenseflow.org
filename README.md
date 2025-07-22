@@ -77,7 +77,7 @@ A comprehensive, auditable, and user-friendly expense management platform that m
 ## 📊 Database Schema
 
 ### Core Tables
-- **expense_users**: User profiles and roles
+- **profiles**: User profiles and roles
 - **expense_submissions**: Main expense submissions
 - **transportation_expenses**: Travel-related expenses
 - **food_accommodation_expenses**: Meal and lodging costs

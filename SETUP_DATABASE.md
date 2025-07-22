@@ -10,6 +10,24 @@ Your Supabase database is currently set up for a different project (news/article
 1. Open [https://jbkzcjdqbuhgxahhzkno.supabase.co](https://jbkzcjdqbuhgxahhzkno.supabase.co)
 2. Go to **SQL Editor** in the left sidebar (or use [supabase.com/dashboard](https://supabase.com/dashboard))
 
+## 🔥 **QUICK FIX for RLS Error** (Run this first if you're getting RLS errors)
+
+```sql
+-- EMERGENCY FIX FOR RLS POLICY ERROR
+-- Run this if you're getting "violates row-level security policy" error
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+
+CREATE POLICY "Users can insert their own profile" ON profiles
+  FOR INSERT WITH CHECK (
+    auth.uid() = id OR 
+    auth.uid() IS NOT NULL
+  );
+
+CREATE POLICY IF NOT EXISTS "Users can update their own profile" ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+```
+
 ### Step 2: Run This SAFE SQL (Copy the entire block)
 
 ```sql

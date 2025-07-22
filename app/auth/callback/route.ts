@@ -17,21 +17,22 @@ export async function GET(request: Request) {
       {
         cookies: {
           getAll() {
-            return cookieStore.getAll()
+            return cookieStore.getAll().map(cookie => ({
+              name: cookie.name,
+              value: cookie.value,
+            }))
           },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch (error) {
-              console.error('Error setting cookies:', error);
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
+          setAll(cookies) {
+            cookies.forEach(cookie => {
+              cookieStore.set(cookie.name, cookie.value, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/'
+              })
+            })
+          }
+        }
       }
     )
     
@@ -42,17 +43,42 @@ export async function GET(request: Request) {
       if (error) {
         console.error('❌ Error exchanging code for session:', error);
         return NextResponse.redirect(`${origin}?error=auth_error`);
-      } else {
-        console.log('✅ Successfully exchanged code for session:', !!data.session);
-        console.log('👤 Session user:', data.session?.user?.email);
       }
+
+      if (!data.session) {
+        console.error('❌ No session returned after exchange');
+        return NextResponse.redirect(`${origin}?error=no_session`);
+      }
+
+      console.log('✅ Successfully exchanged code for session');
+      console.log('👤 Session user:', data.session.user.email);
+      console.log('🔑 Session expires:', new Date(data.session.expires_at! * 1000).toISOString());
+
+      // Create response with cookies
+      const response = NextResponse.redirect(origin);
+      
+      // Get all cookies set by Supabase auth
+      const authCookies = cookieStore.getAll();
+      console.log('🍪 Auth cookies to transfer:', authCookies.length);
+      
+      // Transfer auth cookies to the response
+      authCookies.forEach(cookie => {
+        response.cookies.set(cookie.name, cookie.value, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 1 week
+        });
+      });
+
+      return response;
     } catch (error) {
       console.error('❌ Exception during session exchange:', error);
       return NextResponse.redirect(`${origin}?error=auth_error`);
     }
   }
 
-  console.log('🏠 Redirecting to origin:', origin);
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(origin)
+  console.log('❌ No code provided in callback');
+  return NextResponse.redirect(`${origin}?error=no_code`);
 } 

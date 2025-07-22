@@ -37,34 +37,61 @@ export default async function RootLayout({
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll()
+          return cookieStore.getAll().map(cookie => ({
+            name: cookie.name,
+            value: cookie.value,
+          }))
         },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
+        setAll(cookies) {
+          cookies.forEach(cookie => {
+            cookieStore.set(cookie.name, cookie.value, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/'
+            })
+          })
+        }
+      }
     }
   );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  try {
+    const {
+      data: { session },
+      error
+    } = await supabase.auth.getSession();
 
-  return (
-    <html lang="en">
-      <body>
-        <RootLayoutClient serverSession={session}>
-          {children}
-        </RootLayoutClient>
-      </body>
-    </html>
-  );
+    if (error) {
+      console.error('Error getting session in root layout:', error);
+      // Clear any potentially corrupted session cookies
+      const authCookies = cookieStore.getAll()
+        .filter(cookie => cookie.name.includes('supabase') || cookie.name.includes('sb-'));
+      
+      authCookies.forEach(cookie => {
+        cookieStore.delete(cookie.name);
+      });
+    }
+
+    return (
+      <html lang="en">
+        <body>
+          <RootLayoutClient serverSession={session}>
+            {children}
+          </RootLayoutClient>
+        </body>
+      </html>
+    );
+  } catch (error) {
+    console.error('Unexpected error in root layout:', error);
+    return (
+      <html lang="en">
+        <body>
+          <RootLayoutClient serverSession={null}>
+            {children}
+          </RootLayoutClient>
+        </body>
+      </html>
+    );
+  }
 } 

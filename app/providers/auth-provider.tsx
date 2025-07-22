@@ -17,11 +17,11 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import type { ExpenseUser } from '@/lib/supabase';
+import type { Profile } from '@/lib/supabase';
 
 interface AuthContextType {
   user: User | null;
-  userProfile: ExpenseUser | null;
+  userProfile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -35,7 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children, initialSession }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(initialSession?.user || null);
-  const [userProfile, setUserProfile] = useState<ExpenseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   
@@ -71,28 +71,30 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
     const initializeAuth = async () => {
       console.log('🔄 Initializing auth...', { initialSession: !!initialSession });
       
-      // Clear potentially corrupted cookies first
-      clearAuthCookies();
-      
       try {
-        // If we have an initial session, fetch the user profile
-        if (initialSession?.user) {
-          console.log('✅ Found initial session:', initialSession.user.id);
-          setUser(initialSession.user);
-          await fetchUserProfile(initialSession.user);
+        // Always get a fresh session from the client
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('📱 Client session check result:', { 
+          session: !!session, 
+          error: sessionError,
+          userId: session?.user?.id,
+          userEmail: session?.user?.email
+        });
+        
+        if (sessionError) {
+          console.error('❌ Error getting session:', sessionError);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          console.log('✅ Found valid session:', session.user.id);
+          setUser(session.user);
+          await fetchUserProfile(session.user);
         } else {
-          console.log('🔍 No initial session, checking client session...');
-          // If no initial session, check client session
-          const { data: { session }, error } = await supabase.auth.getSession();
-          console.log('📱 Client session check result:', { session: !!session, error });
-          
-          if (session?.user) {
-            console.log('✅ Found client session:', session.user.id);
-            setUser(session.user);
-            await fetchUserProfile(session.user);
-          } else {
-            console.log('❌ No session found');
-          }
+          console.log('❌ No valid session found');
+          setUser(null);
+          setUserProfile(null);
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
@@ -126,7 +128,6 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         setUserProfile(null);
       }
       
-      // Don't set loading to false here as it's already handled in initializeAuth
       if (event === 'SIGNED_OUT') {
         router.refresh(); // Refresh to update server session
       }
@@ -187,15 +188,17 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
             
             // Fallback to mock profile if database creation fails
             console.log('🔄 Using fallback mock profile...');
-            const mockProfile: ExpenseUser = {
+            const mockProfile: Profile = {
               id: authUser.id,
               email: authUser.email || '',
               full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
               avatar_url: authUser.user_metadata?.avatar_url,
               role: 'user',
-              department: undefined,
-              manager_id: undefined,
-              expense_limit: undefined
+              department: null,
+              manager_id: null,
+              expense_limit: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             };
             console.log('✅ Using mock profile:', mockProfile);
             setUserProfile(mockProfile);
@@ -209,15 +212,17 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         
         // For other errors (like table doesn't exist), use mock profile
         console.log('🔄 Using mock profile due to database error...');
-        const mockProfile: ExpenseUser = {
+        const mockProfile: Profile = {
           id: authUser.id,
           email: authUser.email || '',
           full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
           avatar_url: authUser.user_metadata?.avatar_url,
           role: 'user',
-          department: undefined,
-          manager_id: undefined,
-          expense_limit: undefined
+          department: null,
+          manager_id: null,
+          expense_limit: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
         console.log('✅ Using mock profile:', mockProfile);
         setUserProfile(mockProfile);
@@ -229,15 +234,17 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
     } catch (error) {
       console.error('❌ Unexpected error in fetchUserProfile:', error);
       // Final fallback to mock profile
-      const mockProfile: ExpenseUser = {
+      const mockProfile: Profile = {
         id: authUser.id,
         email: authUser.email || '',
         full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
         avatar_url: authUser.user_metadata?.avatar_url,
         role: 'user',
-        department: undefined,
-        manager_id: undefined,
-        expense_limit: undefined
+        department: null,
+        manager_id: null,
+        expense_limit: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       console.log('✅ Using final fallback mock profile:', mockProfile);
       setUserProfile(mockProfile);
