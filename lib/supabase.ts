@@ -14,7 +14,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getOAuthCallbackUrl, getSupabaseUrl, validateConfig } from './config'
+import { getSupabaseUrl, validateConfig } from './config'
 import Logger from '@/app/utils/logger'
 
 let supabaseInstance: SupabaseClient<Database> | null = null;
