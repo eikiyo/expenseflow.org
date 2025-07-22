@@ -234,27 +234,21 @@ export interface ExpenseAuditLog {
 export function convertExpenseFormToRecord(
   formData: ExpenseFormData,
   userId: string
-): Omit<ExpenseRecord, 'id' | 'expense_number' | 'created_at' | 'updated_at'> {
+): Omit<ExpenseRecord, 'id' | 'created_at' | 'updated_at'> {
   const baseRecord = {
     user_id: userId,
-    type: formData.type,
+    expense_type: formData.type,
     status: 'draft' as const,
-    title: `${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)} Expense`,
     description: formData.description,
     total_amount: formData.totalAmount,
-    currency: formData.currency,
-    business_purpose: formData.businessPurpose,
-    submitted_at: null,
-    approved_at: null,
-    approver_id: null,
-    approval_notes: null
+    currency: formData.currency
   }
 
-  let expense_data: ExpenseData
+  let submission_data: ExpenseData
 
   switch (formData.type) {
     case 'travel':
-      expense_data = {
+      submission_data = {
         transport_method: formData.transportationType,
         start_location: formData.startLocation.address,
         end_location: formData.endLocation.address,
@@ -281,7 +275,7 @@ export function convertExpenseFormToRecord(
       break
 
     case 'maintenance':
-      expense_data = {
+      submission_data = {
         category: formData.category,
         sub_category: formData.subCategory,
         service_date: formData.serviceDate.toISOString().split('T')[0],
@@ -297,7 +291,7 @@ export function convertExpenseFormToRecord(
       break
 
     case 'requisition':
-      expense_data = {
+      submission_data = {
         service_type: formData.serviceType,
         sub_type: formData.subType,
         duration: formData.duration,
@@ -314,7 +308,7 @@ export function convertExpenseFormToRecord(
 
   return {
     ...baseRecord,
-    expense_data
+    submission_data
   }
 }
 
@@ -323,18 +317,17 @@ export function convertExpenseRecordToForm(
 ): ExpenseFormData {
   const baseForm = {
     id: record.id,
-    type: record.type,
-    description: record.description,
+    type: record.expense_type,
+    description: record.description || '',
     totalAmount: record.total_amount,
     currency: record.currency,
-    businessPurpose: record.expense_data.business_purpose || '',
-    status: record.status,
-    submittedAt: record.submitted_at ? new Date(record.submitted_at) : undefined
+    businessPurpose: (record.submission_data as any).business_purpose || '',
+    status: record.status
   }
 
-  switch (record.type) {
+  switch (record.expense_type) {
     case 'travel':
-      const travelData = record.expense_data as TravelExpenseData
+      const travelData = record.submission_data as TravelExpenseData
       return {
         ...baseForm,
         type: 'travel',
@@ -359,7 +352,7 @@ export function convertExpenseRecordToForm(
       } as TravelExpense
 
     case 'maintenance':
-      const maintenanceData = record.expense_data as MaintenanceExpenseData
+      const maintenanceData = record.submission_data as MaintenanceExpenseData
       return {
         ...baseForm,
         type: 'maintenance',
@@ -374,7 +367,7 @@ export function convertExpenseRecordToForm(
       } as MaintenanceExpense
 
     case 'requisition':
-      const requisitionData = record.expense_data as RequisitionExpenseData
+      const requisitionData = record.submission_data as RequisitionExpenseData
       return {
         ...baseForm,
         type: 'requisition',
@@ -388,5 +381,8 @@ export function convertExpenseRecordToForm(
         preferredVendor: requisitionData.preferred_vendor,
         urgencyLevel: requisitionData.urgency_level
       } as RequisitionExpense
+
+    default:
+      throw new Error(`Unknown expense type: ${record.expense_type}`)
   }
 } 
