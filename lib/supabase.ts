@@ -60,7 +60,10 @@ export const signInWithGoogle = async () => {
     provider: 'google',
     options: {
       redirectTo,
-      // No queryParams needed - using default OAuth flow
+      skipBrowserRedirect: false,
+      queryParams: {
+        prompt: 'select_account' // Always show account selector
+      }
     }
   });
 
