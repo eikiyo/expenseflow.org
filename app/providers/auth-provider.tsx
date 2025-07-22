@@ -83,81 +83,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         Logger.auth.info('Getting initial session')
         
-                // Check for OAuth callback parameters
-                if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
-                  Logger.auth.info('OAuth callback detected, manually exchanging code for session')
-                  
-                  // Extract code and state from URL
-                  const urlParams = new URLSearchParams(window.location.search)
-                  const code = urlParams.get('code')
-                  const state = urlParams.get('state')
-                  
-                  if (code && state) {
-                    Logger.auth.info('Exchanging OAuth code for session', {
-                      meta: {
-                        codeLength: code.length,
-                        stateLength: state.length
-                      }
-                    })
-                    
-                    try {
-                      // Manually exchange the code for a session
-                      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-                      
-                      if (error) {
-                        Logger.auth.error('Failed to exchange code for session', {
-                          meta: { error: error.message }
-                        })
-                      } else if (data.session) {
-                        Logger.auth.info('Successfully exchanged code for session', {
-                          meta: {
-                            userId: data.session.user.id,
-                            email: data.session.user.email
-                          }
-                        })
-                        setUser(data.session.user)
-                      }
-                    } catch (exchangeError: any) {
-                      Logger.auth.error('Error during code exchange', {
-                        meta: { error: exchangeError.message }
-                      })
-                    }
-                  }
-                  
-                  setLoading(false)
-                  return
-                }
-        
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          Logger.auth.error('Error getting session', { 
-            message: error.message,
-            meta: { name: error.name }
-          })
-          setLoading(false)
-          return
-        }
-
-        if (session?.user) {
-          Logger.auth.info('Found existing session', {
+          Logger.auth.error('Error getting session', { meta: { error } })
+        } else if (session) {
+          Logger.auth.info('Initial session found', {
             meta: {
               userId: session.user.id,
-              email: session.user.email,
-              provider: session.user.app_metadata?.provider,
-              lastSignIn: session.user.last_sign_in_at
+              email: session.user.email
             }
           })
           setUser(session.user)
         } else {
-          Logger.auth.info('No existing session found')
-          setUser(null)
+          Logger.auth.info('No initial session found')
         }
       } catch (error: any) {
-        Logger.auth.error('Error initializing auth', { 
-          message: error.message,
-          meta: { name: error.name }
-        })
+        Logger.auth.error('Error in initializeAuth', { meta: { error } })
       } finally {
         setLoading(false)
       }
