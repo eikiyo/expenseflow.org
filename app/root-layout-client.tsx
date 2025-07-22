@@ -1,9 +1,20 @@
+/**
+ * ROOT LAYOUT CLIENT
+ * 
+ * Client-side root layout component that wraps the app with providers.
+ * Handles auth state and error boundaries.
+ * 
+ * Dependencies: react, @supabase/auth-helpers-nextjs
+ * Used by: Root layout
+ * 
+ * @author ExpenseFlow Team
+ * @since 2024-01-01
+ */
+
 'use client';
 
 import { AuthProvider } from './providers/auth-provider';
-import { ExpenseProvider } from './providers/expense-provider';
-import { RouteGuard } from './components/auth/RouteGuard';
-import { Toaster } from 'react-hot-toast';
+import { AuthErrorBoundary } from './components/auth/AuthErrorBoundary';
 import type { Session } from '@supabase/supabase-js';
 
 interface RootLayoutClientProps {
@@ -11,29 +22,12 @@ interface RootLayoutClientProps {
   serverSession: Session | null;
 }
 
-export function RootLayoutClient({
-  children,
-  serverSession,
-}: RootLayoutClientProps) {
+export function RootLayoutClient({ children, serverSession }: RootLayoutClientProps) {
   return (
-    <AuthProvider initialSession={serverSession}>
-      {/* <RouteGuard> */}
-        <ExpenseProvider>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-            }}
-          />
-        </ExpenseProvider>
-      {/* </RouteGuard> */}
-    </AuthProvider>
+    <AuthErrorBoundary>
+      <AuthProvider initialSession={serverSession}>
+        {children}
+      </AuthProvider>
+    </AuthErrorBoundary>
   );
 } 

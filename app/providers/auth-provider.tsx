@@ -80,9 +80,32 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         expense_limit: 0
       };
 
-      console.log(`📝 Creating profile (attempt ${retryCount + 1}/${MAX_RETRIES})`, newProfileData);
+      console.log(`📝 Profile creation attempt ${retryCount + 1}/${MAX_RETRIES}:`, {
+        userId: authUser.id,
+        email: authUser.email,
+        metadata: authUser.user_metadata,
+        provider: authUser.app_metadata?.provider,
+        profileData: newProfileData
+      });
 
       const supabase = getSupabaseClient();
+      
+      // First, verify the user exists in auth.users
+      const { data: authData, error: authError } = await supabase.auth.admin.getUserById(authUser.id);
+      if (authError) {
+        console.error('❌ Error verifying user in auth.users:', {
+          error: authError,
+          userId: authUser.id
+        });
+        throw new Error(`User verification failed: ${authError.message}`);
+      }
+      console.log('✅ User verified in auth.users:', {
+        userId: authData.user.id,
+        email: authData.user.email,
+        emailConfirmed: authData.user.email_confirmed_at
+      });
+
+      // Now try to create the profile
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert(newProfileData)
@@ -90,11 +113,30 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         .single();
 
       if (createError) {
-        console.error(`❌ Error creating profile (attempt ${retryCount + 1}):`, createError);
+        console.error(`❌ Profile creation failed (attempt ${retryCount + 1}):`, {
+          error: createError,
+          code: createError.code,
+          details: createError.details,
+          hint: createError.hint,
+          userId: authUser.id,
+          email: authUser.email
+        });
         
         // Handle specific error cases
         if (createError.code === '23505') { // Unique violation
-          throw new Error('A profile already exists for this user.');
+          // Try to fetch the existing profile
+          console.log('🔍 Unique violation - checking for existing profile...');
+          const { data: existingProfile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+            
+          if (!fetchError && existingProfile) {
+            console.log('✅ Found existing profile:', existingProfile);
+            return existingProfile;
+          }
+          throw new Error('A profile already exists but could not be retrieved.');
         }
         if (createError.code === '42501') { // RLS violation
           throw new Error('Permission denied. Please check your account permissions.');
@@ -105,7 +147,10 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
 
         // For other errors, retry if we haven't hit the limit
         if (retryCount < MAX_RETRIES - 1) {
-          console.log(`🔄 Retrying profile creation in ${RETRY_DELAY}ms...`);
+          console.log(`🔄 Retrying profile creation in ${RETRY_DELAY}ms...`, {
+            nextAttempt: retryCount + 2,
+            maxAttempts: MAX_RETRIES
+          });
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
           return createUserProfileWithRetry(authUser, retryCount + 1);
         }
@@ -113,11 +158,19 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         throw new Error(`Failed to create profile after ${MAX_RETRIES} attempts: ${createError.message}`);
       }
 
-      console.log('✅ Successfully created new profile:', newProfile);
+      console.log('✅ Successfully created new profile:', {
+        profile: newProfile,
+        userId: newProfile.id,
+        email: newProfile.email
+      });
       return newProfile;
     } catch (error) {
       if (retryCount < MAX_RETRIES - 1) {
-        console.log(`🔄 Retrying profile creation in ${RETRY_DELAY}ms...`);
+        console.log(`🔄 Retrying after error in ${RETRY_DELAY}ms...`, {
+          error,
+          nextAttempt: retryCount + 2,
+          maxAttempts: MAX_RETRIES
+        });
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         return createUserProfileWithRetry(authUser, retryCount + 1);
       }
