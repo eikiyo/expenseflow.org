@@ -60,13 +60,13 @@ export async function POST(
     // Get user profile to check approval permissions
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role, approval_limit')
+      .select('role, single_transaction_limit')
       .eq('id', user.id)
       .single()
 
     if (profileError || !profile) {
       return NextResponse.json(
-        { error: 'User profile not found' },
+        { error: 'User profile not found or query failed' },
         { status: 404 }
       )
     }
@@ -81,8 +81,8 @@ export async function POST(
     }
 
     // Check approval limit for managers
-    if (profile.role === 'manager' && profile.approval_limit) {
-      if (expense.total_amount > profile.approval_limit) {
+    if (profile.role === 'manager' && profile.single_transaction_limit) {
+      if (expense.total_amount > profile.single_transaction_limit) {
         return NextResponse.json(
           { error: 'Expense amount exceeds your approval limit' },
           { status: 403 }

@@ -392,3 +392,7 @@ public/mockServiceWorker.js
 
 # Sst
 .sst
+
+# Custom Ignores
+supabase/
+!supabase/config.toml
