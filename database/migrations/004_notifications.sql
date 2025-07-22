@@ -32,13 +32,33 @@ CREATE POLICY create_notifications ON notifications
   );
 
 -- Users can mark their own notifications as read
-CREATE POLICY update_own_notifications ON notifications
+CREATE POLICY mark_notification_read ON notifications
   FOR UPDATE
-  USING (auth.uid() = user_id)
+  USING (
+    auth.uid() = user_id
+    AND read_at IS NULL
+  )
   WITH CHECK (
     auth.uid() = user_id
-    AND (
-      (read_at IS NULL AND NEW.read_at IS NOT NULL)
-      OR status = 'pending'
+    AND read_at IS NULL
+  );
+
+-- System can update notification status
+CREATE POLICY update_notification_status ON notifications
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+      AND role = 'admin'
     )
+    AND status = 'pending'
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+      AND role = 'admin'
+    )
+    AND status IN ('sent', 'failed')
   ); 
