@@ -58,6 +58,7 @@ export default function ExpenseApp() {
       // If we have OAuth callback parameters, let Supabase handle them
       if (code && state) {
         console.log('[OAuth] Detected callback parameters, letting Supabase handle automatically')
+        console.log('[OAuth] Code length:', code.length, 'State length:', state.length)
         // Clean up URL to remove the parameters
         window.history.replaceState({}, document.title, window.location.pathname)
       } else if (error) {

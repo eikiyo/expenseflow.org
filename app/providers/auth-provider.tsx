@@ -131,9 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        Logger.auth.debug('Auth state changed', {
+        Logger.auth.info('Auth state changed', {
           meta: {
             event,
+            hasSession: !!session,
             userId: session?.user?.id,
             email: session?.user?.email,
             provider: session?.user?.app_metadata?.provider,
@@ -152,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })
           setUser(session.user)
         } else {
-          Logger.auth.info('User not authenticated')
+          Logger.auth.info('User not authenticated', {
+            meta: { event }
+          })
           setUser(null)
         }
         setLoading(false)
