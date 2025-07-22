@@ -144,9 +144,17 @@ export interface Database {
           full_name: string
           avatar_url?: string | null
           department?: string | null
-          role: string
+          role: 'user' | 'manager' | 'admin' | 'employee'
           manager_id?: string | null
           expense_limit?: number | null
+          // New unified fields from expense_users
+          employee_id?: string | null
+          phone?: string | null
+          address?: string | null
+          monthly_budget?: number | null
+          single_transaction_limit?: number | null
+          profile_picture_url?: string | null
+          is_active?: boolean | null
         }
         Insert: {
           id: string
@@ -156,9 +164,17 @@ export interface Database {
           full_name: string
           avatar_url?: string | null
           department?: string | null
-          role?: string
+          role?: 'user' | 'manager' | 'admin' | 'employee'
           manager_id?: string | null
           expense_limit?: number | null
+          // New unified fields from expense_users
+          employee_id?: string | null
+          phone?: string | null
+          address?: string | null
+          monthly_budget?: number | null
+          single_transaction_limit?: number | null
+          profile_picture_url?: string | null
+          is_active?: boolean | null
         }
         Update: {
           id?: string
@@ -168,9 +184,17 @@ export interface Database {
           full_name?: string
           avatar_url?: string | null
           department?: string | null
-          role?: string
+          role?: 'user' | 'manager' | 'admin' | 'employee'
           manager_id?: string | null
           expense_limit?: number | null
+          // New unified fields from expense_users
+          employee_id?: string | null
+          phone?: string | null
+          address?: string | null
+          monthly_budget?: number | null
+          single_transaction_limit?: number | null
+          profile_picture_url?: string | null
+          is_active?: boolean | null
         }
       }
     }

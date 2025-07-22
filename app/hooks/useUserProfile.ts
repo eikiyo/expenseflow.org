@@ -22,7 +22,7 @@ export function useUserProfile() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Creates or updates a user profile
+  // Creates or updates a user profile with unified fields
   // Returns the profile or null if operation fails
   const createProfile = async (userData: any) => {
     if (!userData) return null
@@ -34,9 +34,17 @@ export function useUserProfile() {
       full_name: userData.user_metadata?.full_name || userData.email?.split('@')[0] || 'New User',
       avatar_url: userData.user_metadata?.avatar_url || null,
       department: null,
-      role: 'user',
+      role: 'user' as const,
       manager_id: null,
       expense_limit: 10000,
+      // New unified fields
+      employee_id: `EMP${Date.now()}`, // Generate unique employee ID
+      phone: null,
+      address: null,
+      monthly_budget: 50000,
+      single_transaction_limit: 10000,
+      profile_picture_url: userData.user_metadata?.avatar_url || null,
+      is_active: true,
       created_at: now,
       updated_at: now
     }

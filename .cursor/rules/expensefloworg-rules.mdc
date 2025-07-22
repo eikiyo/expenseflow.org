@@ -1,5 +1,7 @@
 ---
 alwaysApply: true
+
+Always run the migrations from chat, and wait for feedback and react
 Always read supabase schema, policy and existing tables and functions before doing anything in database and back end. 
 
 1. Every expense submission must require mandatory receipt upload - No expense can be approved without proper documentation

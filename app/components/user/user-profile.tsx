@@ -23,14 +23,21 @@ export function UserProfile({ onBack }: UserProfileProps) {
     return <div className="text-center py-8">User profile not found.</div>;
   }
 
-  // Map profile to the expected structure
+  // Map profile to the expected structure with new unified fields
   const userData = {
     fullName: profile.full_name,
     email: profile.email,
     department: profile.department || '',
     role: profile.role,
-    avatarUrl: profile.avatar_url || '/placeholder.jpg',
-    expenseLimit: profile.expense_limit || 0
+    avatarUrl: profile.avatar_url || profile.profile_picture_url || '/placeholder.jpg',
+    expenseLimit: profile.expense_limit || 0,
+    // New unified fields
+    employeeId: profile.employee_id || '',
+    phone: profile.phone || '',
+    address: profile.address || '',
+    monthlyBudget: profile.monthly_budget || 0,
+    singleTransactionLimit: profile.single_transaction_limit || 0,
+    isActive: profile.is_active ?? true
   };
 
   const handleSaveChanges = () => {
@@ -95,8 +102,11 @@ export function UserProfile({ onBack }: UserProfileProps) {
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold text-gray-900">{userData.fullName}</h2>
                   <p className="text-gray-500">{userData.email}</p>
+                  {userData.employeeId && (
+                    <p className="text-sm text-gray-500">Employee ID: {userData.employeeId}</p>
+                  )}
                 </div>
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-medium text-gray-500">Department:</span>
                     <span className="ml-2 text-gray-900">{userData.department || 'Not set'}</span>
@@ -106,8 +116,12 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <span className="ml-2 text-gray-900 capitalize">{userData.role}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Expense Limit:</span>
-                    <span className="ml-2 text-gray-900">৳{userData.expenseLimit.toLocaleString()}</span>
+                    <span className="text-sm font-medium text-gray-500">Monthly Budget:</span>
+                    <span className="ml-2 text-gray-900">৳{userData.monthlyBudget.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Transaction Limit:</span>
+                    <span className="ml-2 text-gray-900">৳{userData.singleTransactionLimit.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -129,6 +143,18 @@ export function UserProfile({ onBack }: UserProfileProps) {
                 Personal Information
               </button>
               <button
+                onClick={() => setActiveTab('financial')}
+                className={`
+                  flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 
+                  ${activeTab === 'financial'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }
+                `}
+              >
+                Financial Settings
+              </button>
+              <button
                 onClick={() => setActiveTab('security')}
                 className={`
                   flex-1 px-4 py-3 text-sm font-medium text-center border-b-2
@@ -140,50 +166,141 @@ export function UserProfile({ onBack }: UserProfileProps) {
               >
                 Security Settings
               </button>
-              <button
-                onClick={() => setActiveTab('preferences')}
-                className={`
-                  flex-1 px-4 py-3 text-sm font-medium text-center border-b-2
-                  ${activeTab === 'preferences'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }
-                `}
-              >
-                Preferences
-              </button>
             </nav>
           </div>
 
           <div className="p-6">
             {activeTab === 'personal' && (
               <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input
+                      type="text"
+                      value={userData.fullName}
+                      disabled={!editMode}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                    <input
+                      type="text"
+                      value={userData.employeeId}
+                      disabled
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      value={userData.email}
+                      disabled
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                      type="tel"
+                      value={userData.phone}
+                      disabled={!editMode}
+                      placeholder="Enter phone number"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Department</label>
+                    <input
+                      type="text"
+                      value={userData.department}
+                      disabled={!editMode}
+                      placeholder="Enter department"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <select
+                      value={userData.role}
+                      disabled={!editMode}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    >
+                      <option value="user">User</option>
+                      <option value="employee">Employee</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <input
-                    type="text"
-                    value={userData.fullName}
+                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <textarea
+                    value={userData.address}
                     disabled={!editMode}
+                    placeholder="Enter full address"
+                    rows={3}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    value={userData.email}
-                    disabled
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Department</label>
-                  <input
-                    type="text"
-                    value={userData.department}
-                    disabled={!editMode}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                  />
+              </div>
+            )}
+
+            {activeTab === 'financial' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Monthly Budget</label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
+                      <input
+                        type="number"
+                        value={userData.monthlyBudget}
+                        disabled={!editMode}
+                        className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                      />
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">Maximum budget allocation per month</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Single Transaction Limit</label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
+                      <input
+                        type="number"
+                        value={userData.singleTransactionLimit}
+                        disabled={!editMode}
+                        className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                      />
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">Maximum amount per single expense</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Expense Limit</label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
+                      <input
+                        type="number"
+                        value={userData.expenseLimit}
+                        disabled={!editMode}
+                        className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                      />
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">Overall expense authorization limit</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Account Status</label>
+                    <div className="mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        userData.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {userData.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -217,51 +334,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     >
                       Set Up 2FA
                     </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'preferences' && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Email Notifications</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Choose what types of email notifications you'd like to receive.
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="expense-submitted"
-                          name="expense-submitted"
-                          type="checkbox"
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="expense-submitted" className="font-medium text-gray-700">
-                          Expense Submitted
-                        </label>
-                        <p className="text-gray-500">Get notified when an expense is submitted for your approval.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="flex items-center h-5">
-                        <input
-                          id="expense-approved"
-                          name="expense-approved"
-                          type="checkbox"
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                      </div>
-                      <div className="ml-3 text-sm">
-                        <label htmlFor="expense-approved" className="font-medium text-gray-700">
-                          Expense Approved/Rejected
-                        </label>
-                        <p className="text-gray-500">Get notified when your expense is approved or rejected.</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

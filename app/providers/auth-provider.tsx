@@ -113,15 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Logger.auth.info('Auth state changed', {
           meta: {
             event,
-            hasSession: !!session,
-            userId: session?.user?.id,
+        hasSession: !!session,
+        userId: session?.user?.id,
             email: session?.user?.email,
             provider: session?.user?.app_metadata?.provider,
             lastSignIn: session?.user?.last_sign_in_at
           }
         })
-
-        if (session?.user) {
+      
+      if (session?.user) {
           Logger.auth.info('User authenticated', {
             meta: {
               userId: session.user.id,
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           })
           setUser(session.user)
-        } else {
+      } else {
           Logger.auth.info('User not authenticated', {
             meta: { event }
           })
