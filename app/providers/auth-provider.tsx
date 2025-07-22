@@ -81,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       try {
         Logger.auth.info('Getting initial session')
+        
+        // Add a small delay to allow Supabase to process OAuth callbacks
+        if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+          Logger.auth.info('OAuth callback detected, waiting for processing')
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+        
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
