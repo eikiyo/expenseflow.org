@@ -41,14 +41,12 @@ describe('Expense API Routes', () => {
         {
           id: '1',
           user_id: 'user123',
-          expense_number: 'EXP-001',
-          type: 'travel' as const,
+          expense_type: 'travel' as const,
           status: 'submitted' as const,
-          title: 'Business Trip',
           description: 'Client meeting in New York',
           total_amount: 1500,
           currency: 'BDT',
-          expense_data: {
+          submission_data: {
             transport_method: 'plane' as const,
             start_location: 'Dhaka',
             end_location: 'New York',
@@ -65,10 +63,6 @@ describe('Expense API Routes', () => {
               per_diem_rate: 0,
             },
           },
-          submitted_at: '2024-01-15T10:00:00Z',
-          approved_at: null,
-          approver_id: null,
-          approval_notes: null,
           created_at: '2024-01-15T10:00:00Z',
           updated_at: '2024-01-15T10:00:00Z',
         },
@@ -110,7 +104,7 @@ describe('Expense API Routes', () => {
   describe('POST /api/expenses', () => {
     it('creates a new expense when valid data is provided', async () => {
       const mockExpenseData = {
-        type: 'travel',
+        expense_type: 'travel',
         description: 'Business trip to client site',
         totalAmount: 1500,
         currency: 'BDT',
@@ -131,14 +125,12 @@ describe('Expense API Routes', () => {
       const mockCreatedExpense = {
         id: 'new-expense-id',
         user_id: 'user123',
-        expense_number: 'EXP-002',
-        type: 'travel' as const,
+        expense_type: 'travel' as const,
         status: 'draft' as const,
-        title: 'Business trip to client site',
         description: 'Client meeting and project discussion',
         total_amount: 1500,
         currency: 'BDT',
-        expense_data: {
+        submission_data: {
           transport_method: 'car' as const,
           start_location: 'Dhaka',
           end_location: 'New York, NY',
@@ -155,10 +147,6 @@ describe('Expense API Routes', () => {
             per_diem_rate: 0,
           },
         },
-        submitted_at: null,
-        approved_at: null,
-        approver_id: null,
-        approval_notes: null,
         created_at: '2024-01-15T10:00:00Z',
         updated_at: '2024-01-15T10:00:00Z',
       };
@@ -184,7 +172,7 @@ describe('Expense API Routes', () => {
 
     it('returns 400 when invalid data is provided', async () => {
       const invalidExpenseData = {
-        type: 'invalid_type',
+        expense_type: 'invalid_type',
         description: '',
         totalAmount: -100,
       };
@@ -211,7 +199,7 @@ describe('Expense API Routes', () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'travel',
+          expense_type: 'travel',
           description: 'Test expense',
           totalAmount: 100,
         }),
@@ -225,13 +213,13 @@ describe('Expense API Routes', () => {
     it('returns 500 when service throws an error', async () => {
       mockSaveExpense.mockRejectedValue(new Error('Database error'));
 
-      const request = new NextRequest('http://localhost:3000/api/expenses', {
+      const request = new NextRequest('http://URL:3000/api/expenses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'travel',
+          expense_type: 'travel',
           description: 'Test expense',
           totalAmount: 100,
         }),

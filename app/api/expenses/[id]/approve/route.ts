@@ -119,7 +119,7 @@ export async function POST(
         .insert({
           user_id: expense.user_id,
           title: `Expense ${action}`,
-          message: `Your expense "${expense.title}" has been ${action}${notes ? `: ${notes}` : ''}`,
+          message: `Your expense "${expense.description || 'ID: ' + expense.id}" has been ${action}${notes ? `: ${notes}` : ''}`,
           type: action === 'approved' ? 'success' : 'warning'
         })
     } catch (notificationError) {

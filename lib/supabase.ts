@@ -268,7 +268,7 @@ export const getExpensesForApproval = async (approverId: string): Promise<Expens
       )
     `)
     .eq('status', 'submitted')
-    .order('submitted_at', { ascending: true });
+    .order('created_at', { ascending: true });
 
   if (error) {
     Logger.db.error('Error fetching expenses for approval', { 
@@ -335,7 +335,7 @@ export const getExpenseApprovals = async (expenseId: string): Promise<Approval[]
         role
       )
     `)
-    .eq('expense_id', expenseId)
+    .eq('submission_id', expenseId)
     .order('created_at', { ascending: false });
 
   if (error) {

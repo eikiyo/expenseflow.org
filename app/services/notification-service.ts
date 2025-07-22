@@ -45,11 +45,17 @@ export async function getUnreadNotifications(userId: string): Promise<Notificati
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
-    .is('read_at', null)
+    .is('is_read', false)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  
+  // Transform the data to match the Notification interface
+  return data.map(notification => ({
+    ...notification,
+    type: notification.type as 'error' | 'info' | 'success' | 'warning',
+    is_read: notification.is_read || false
+  }));
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

@@ -22,7 +22,9 @@ import {
   type ExpenseFormData,
   type TravelExpense,
   type FormValidationState,
-  type ExpenseSubmissionState
+  type ExpenseSubmissionState,
+  convertExpenseFormToRecord,
+  convertExpenseRecordToForm
 } from '@/app/types/expense';
 
 // Define the form state interface
@@ -123,10 +125,14 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      const savedExpense = await saveExpense(state.expense, user.id);
+      // Convert form data to database record format
+      const expenseRecord = convertExpenseFormToRecord(state.expense, user.id);
+      const savedExpense = await saveExpense(expenseRecord as any);
       if (savedExpense) {
         dispatch({ type: 'MARK_SAVED', payload: new Date() });
-        dispatch({ type: 'SET_EXPENSE', payload: savedExpense });
+        // Convert back to form data format
+        const formData = convertExpenseRecordToForm(savedExpense as any);
+        dispatch({ type: 'SET_EXPENSE', payload: formData });
       }
     } catch (error) {
       console.error('Error saving expense:', error);
