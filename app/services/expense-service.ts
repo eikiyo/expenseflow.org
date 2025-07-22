@@ -12,17 +12,27 @@
  */
 
 import { getSupabaseClient } from '@/lib/supabase'
-import { ExpenseStatus } from '../types/expense'
 import type { 
   TravelExpense, 
   MaintenanceExpense, 
-  RequisitionExpense
+  RequisitionExpense,
+  ExpenseFormData
 } from '../types/expense'
 
 type Expense = TravelExpense | MaintenanceExpense | RequisitionExpense
 
+// Interface for expense status updates
+interface ExpenseStatusUpdate {
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
+  updated_at: string
+  comments?: Array<{
+    content: string
+    createdAt: string
+  }>
+}
+
 // Saves or updates an expense in the database
-export async function saveExpense(expense: Expense) {
+export async function saveExpense(expense: Expense): Promise<Expense> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
@@ -38,7 +48,7 @@ export async function saveExpense(expense: Expense) {
 }
 
 // Retrieves an expense by ID
-export async function getExpenseById(id: string) {
+export async function getExpenseById(id: string): Promise<Expense | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
@@ -51,7 +61,7 @@ export async function getExpenseById(id: string) {
 }
 
 // Gets all expenses for a user
-export async function getUserExpenses(userId: string) {
+export async function getUserExpenses(userId: string): Promise<Expense[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
@@ -60,30 +70,30 @@ export async function getUserExpenses(userId: string) {
     .order('updated_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return data || []
 }
 
 // Gets all expenses pending approval
-export async function getPendingApprovals(approverId: string) {
+export async function getPendingApprovals(approverId: string): Promise<Expense[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
-    .eq('status', ExpenseStatus.SUBMITTED)
+    .eq('status', 'submitted')
     .eq('approver_id', approverId)
     .order('submitted_at', { ascending: true })
 
   if (error) throw error
-  return data
+  return data || []
 }
 
 // Submits an expense for approval
-export async function submitExpense(id: string) {
+export async function submitExpense(id: string): Promise<Expense> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .update({
-      status: ExpenseStatus.SUBMITTED,
+      status: 'submitted',
       submitted_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -97,11 +107,11 @@ export async function submitExpense(id: string) {
 // Updates expense status (approve/reject)
 export async function updateExpenseStatus(
   id: string, 
-  status: ExpenseStatus.APPROVED | ExpenseStatus.REJECTED,
+  status: 'approved' | 'rejected',
   comment?: string
-) {
+): Promise<Expense> {
   const supabase = getSupabaseClient();
-  const updates: any = {
+  const updates: ExpenseStatusUpdate = {
     status,
     updated_at: new Date().toISOString()
   }
@@ -131,13 +141,13 @@ export async function updateExpenseStatus(
 }
 
 // Deletes a draft expense
-export async function deleteDraftExpense(id: string) {
+export async function deleteDraftExpense(id: string): Promise<boolean> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('expenses')
     .delete()
     .eq('id', id)
-    .eq('status', ExpenseStatus.DRAFT)
+    .eq('status', 'draft')
 
   if (error) throw error
   return true

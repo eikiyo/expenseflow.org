@@ -21,7 +21,7 @@ import Logger from '@/app/utils/logger'
 interface User {
   id: string
   email?: string
-  user_metadata?: any
+  user_metadata?: Record<string, unknown>
 }
 
 interface AuthContextType {
@@ -78,27 +78,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = getSupabaseClient()
     
+    // Check for OAuth callback parameters
+    const checkOAuthCallback = () => {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search)
+        const code = urlParams.get('code')
+        const state = urlParams.get('state')
+        const error = urlParams.get('error')
+        
+        if (code && state) {
+          Logger.auth.info('OAuth callback detected, processing...')
+          return true
+        } else if (error) {
+          Logger.auth.error('OAuth error detected', { meta: { error } })
+          return true
+        }
+      }
+      return false
+    }
+
     // Get initial session
     const initializeAuth = async () => {
       try {
         Logger.auth.info('Getting initial session')
         
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // If we have OAuth callback parameters, let the auth state change handler deal with it
+        const hasOAuthCallback = checkOAuthCallback()
         
-        if (error) {
-          Logger.auth.error('Error getting session', { meta: { error } })
-        } else if (session) {
-          Logger.auth.info('Initial session found', {
-            meta: {
-              userId: session.user.id,
-              email: session.user.email
-            }
-          })
-          setUser(session.user)
-        } else {
-          Logger.auth.info('No initial session found')
+        if (!hasOAuthCallback) {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          
+          if (error) {
+            Logger.auth.error('Error getting session', { meta: { error } })
+          } else if (session) {
+            Logger.auth.info('Initial session found', {
+              meta: {
+                userId: session.user.id,
+                email: session.user.email
+              }
+            })
+            setUser(session.user)
+          } else {
+            Logger.auth.info('No initial session found')
+          }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         Logger.auth.error('Error in initializeAuth', { meta: { error } })
       } finally {
         setLoading(false)
@@ -113,15 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Logger.auth.info('Auth state changed', {
           meta: {
             event,
-        hasSession: !!session,
-        userId: session?.user?.id,
+            hasSession: !!session,
+            userId: session?.user?.id,
             email: session?.user?.email,
             provider: session?.user?.app_metadata?.provider,
             lastSignIn: session?.user?.last_sign_in_at
           }
         })
       
-      if (session?.user) {
+        if (session?.user) {
           Logger.auth.info('User authenticated', {
             meta: {
               userId: session.user.id,
@@ -131,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           })
           setUser(session.user)
-      } else {
+        } else {
           Logger.auth.info('User not authenticated', {
             meta: { event }
           })
