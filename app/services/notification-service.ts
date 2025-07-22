@@ -80,7 +80,7 @@ export async function notifyExpenseSubmitted(expense: any, submitter: any, appro
     <ul>
       <li>Submitter: ${submitter.full_name}</li>
       <li>Amount: ${expense.currency} ${expense.totalAmount}</li>
-      <li>Type: ${expense.type}</li>
+      <li>Type: ${expense.expense_type}</li>
       <li>Description: ${expense.description}</li>
     </ul>
     <p>Please review and take action on this expense.</p>
@@ -103,7 +103,7 @@ export async function notifyExpenseStatus(expense: any, submitter: any, approver
     <p>Your expense submission has been ${status}:</p>
     <ul>
       <li>Amount: ${expense.currency} ${expense.totalAmount}</li>
-      <li>Type: ${expense.type}</li>
+      <li>Type: ${expense.expense_type}</li>
       <li>Description: ${expense.description}</li>
       ${comment ? `<li>Comment: ${comment}</li>` : ''}
     </ul>

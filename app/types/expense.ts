@@ -15,18 +15,12 @@
 export interface ExpenseRecord {
   id: string
   user_id: string
-  expense_number: string
-  type: 'travel' | 'maintenance' | 'requisition'
-  status: 'draft' | 'submitted' | 'approved' | 'rejected'
-  title: string
-  description: string
+  expense_type: 'travel' | 'maintenance' | 'requisition'
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'in_review'
+  description: string | null
   total_amount: number
   currency: string
-  expense_data: ExpenseData
-  submitted_at: string | null
-  approved_at: string | null
-  approver_id: string | null
-  approval_notes: string | null
+  submission_data: ExpenseData
   created_at: string
   updated_at: string
 }
@@ -34,20 +28,20 @@ export interface ExpenseRecord {
 export interface AttachmentRecord {
   id: string
   expense_id: string
-  filename: string
+  file_name: string
   file_path: string
-  file_size: number
-  content_type: string
+  file_size: number | null
+  file_type: string | null
   uploaded_at: string
 }
 
 export interface ApprovalRecord {
   id: string
-  expense_id: string
+  submission_id: string
   approver_id: string
-  action: 'approved' | 'rejected'
-  notes: string | null
-  created_at: string
+  status: 'approved' | 'rejected'
+  comments: string | null
+  created_at: string | null
 }
 
 // JSON data structures for expense_data field

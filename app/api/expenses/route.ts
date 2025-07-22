@@ -13,9 +13,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/lib/database.types'
 import { saveExpense, getUserExpenses, getExpenseById } from '@/app/services/expense-service'
-import type { ExpenseFormData } from '@/app/types/expense'
+import type { Database } from '@/lib/database.types'
+
+type ExpenseSubmissionInsert = Database['public']['Tables']['expense_submissions']['Insert']
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const formData: ExpenseFormData = body.expense
+    const formData: any = body.expense
 
     // Validate required fields
     if (!formData || !formData.type || !formData.description || !formData.totalAmount) {
@@ -94,8 +95,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Convert form data to database format
+    const expenseData: ExpenseSubmissionInsert = {
+      user_id: user.id,
+      expense_type: formData.type,
+      description: formData.description,
+      total_amount: formData.totalAmount,
+      currency: formData.currency || 'BDT',
+      submission_data: formData,
+      status: 'draft'
+    }
+
     // Save expense to database
-    const savedExpense = await saveExpense(formData, user.id)
+    const savedExpense = await saveExpense(expenseData)
 
     if (!savedExpense) {
       return NextResponse.json(
