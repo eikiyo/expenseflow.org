@@ -33,11 +33,13 @@ export interface ExpenseUser {
   id: string
   email: string
   full_name: string
-  avatar_url?: string
-  department?: string
+  avatar_url?: string | null
+  department?: string | null
   role: 'user' | 'manager' | 'admin'
-  manager_id?: string
-  expense_limit?: number
+  manager_id?: string | null
+  expense_limit?: number | null
+  created_at?: string
+  updated_at?: string
 }
 
 // Get user profile from database

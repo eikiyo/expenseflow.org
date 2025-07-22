@@ -27,112 +27,112 @@ export interface Database {
           id: string
           created_at: string
           updated_at: string
-          userId: string
+          user_id: string
           type: 'travel' | 'maintenance' | 'requisition'
           status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'reimbursed'
-          totalAmount: number
+          total_amount: number
           currency: string
           description: string
           attachments?: Json[]
           comments?: Json[]
           // Travel specific fields
-          startDate?: string
-          endDate?: string
-          startLocation?: Json
-          endLocation?: Json
-          transportationType?: string
+          start_date?: string
+          end_date?: string
+          start_location?: Json
+          end_location?: Json
+          transportation_type?: string
           mileage?: number
-          fuelCost?: number
-          tollCharges?: number
-          accommodationCost?: number
-          perDiemRate?: number
+          fuel_cost?: number
+          toll_charges?: number
+          accommodation_cost?: number
+          per_diem_rate?: number
           // Maintenance specific fields
-          serviceDate?: string
+          service_date?: string
           category?: string
-          assetId?: string
-          vendorName?: string
-          invoiceNumber?: string
-          warrantyApplicable?: boolean
+          asset_id?: string
+          vendor_name?: string
+          invoice_number?: string
+          warranty_applicable?: boolean
           // Requisition specific fields
-          requiredBy?: string
+          required_by?: string
           quantity?: number
-          unitPrice?: number
-          preferredVendor?: string
-          urgencyLevel?: string
+          unit_price?: number
+          preferred_vendor?: string
+          urgency_level?: string
         }
         Insert: {
           id?: string
           created_at?: string
           updated_at?: string
-          userId: string
+          user_id: string
           type: 'travel' | 'maintenance' | 'requisition'
           status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'reimbursed'
-          totalAmount: number
-          currency: string
+          total_amount: number
+          currency?: string
           description: string
           attachments?: Json[]
           comments?: Json[]
           // Travel specific fields
-          startDate?: string
-          endDate?: string
-          startLocation?: Json
-          endLocation?: Json
-          transportationType?: string
+          start_date?: string
+          end_date?: string
+          start_location?: Json
+          end_location?: Json
+          transportation_type?: string
           mileage?: number
-          fuelCost?: number
-          tollCharges?: number
-          accommodationCost?: number
-          perDiemRate?: number
+          fuel_cost?: number
+          toll_charges?: number
+          accommodation_cost?: number
+          per_diem_rate?: number
           // Maintenance specific fields
-          serviceDate?: string
+          service_date?: string
           category?: string
-          assetId?: string
-          vendorName?: string
-          invoiceNumber?: string
-          warrantyApplicable?: boolean
+          asset_id?: string
+          vendor_name?: string
+          invoice_number?: string
+          warranty_applicable?: boolean
           // Requisition specific fields
-          requiredBy?: string
+          required_by?: string
           quantity?: number
-          unitPrice?: number
-          preferredVendor?: string
-          urgencyLevel?: string
+          unit_price?: number
+          preferred_vendor?: string
+          urgency_level?: string
         }
         Update: {
           id?: string
           created_at?: string
           updated_at?: string
-          userId?: string
+          user_id?: string
           type?: 'travel' | 'maintenance' | 'requisition'
           status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'reimbursed'
-          totalAmount?: number
+          total_amount?: number
           currency?: string
           description?: string
           attachments?: Json[]
           comments?: Json[]
           // Travel specific fields
-          startDate?: string
-          endDate?: string
-          startLocation?: Json
-          endLocation?: Json
-          transportationType?: string
+          start_date?: string
+          end_date?: string
+          start_location?: Json
+          end_location?: Json
+          transportation_type?: string
           mileage?: number
-          fuelCost?: number
-          tollCharges?: number
-          accommodationCost?: number
-          perDiemRate?: number
+          fuel_cost?: number
+          toll_charges?: number
+          accommodation_cost?: number
+          per_diem_rate?: number
           // Maintenance specific fields
-          serviceDate?: string
+          service_date?: string
           category?: string
-          assetId?: string
-          vendorName?: string
-          invoiceNumber?: string
-          warrantyApplicable?: boolean
+          asset_id?: string
+          vendor_name?: string
+          invoice_number?: string
+          warranty_applicable?: boolean
           // Requisition specific fields
-          requiredBy?: string
+          required_by?: string
           quantity?: number
-          unitPrice?: number
-          preferredVendor?: string
-          urgencyLevel?: string
+          unit_price?: number
+          preferred_vendor?: string
+          urgency_level?: string
         }
       }
       profiles: {
@@ -142,11 +142,11 @@ export interface Database {
           updated_at: string
           email: string
           full_name: string
-          avatar_url?: string
-          department?: string
+          avatar_url?: string | null
+          department?: string | null
           role: string
-          manager_id?: string
-          expense_limit?: number
+          manager_id?: string | null
+          expense_limit?: number | null
         }
         Insert: {
           id: string
@@ -154,11 +154,11 @@ export interface Database {
           updated_at?: string
           email: string
           full_name: string
-          avatar_url?: string
-          department?: string
+          avatar_url?: string | null
+          department?: string | null
           role?: string
-          manager_id?: string
-          expense_limit?: number
+          manager_id?: string | null
+          expense_limit?: number | null
         }
         Update: {
           id?: string
@@ -166,11 +166,11 @@ export interface Database {
           updated_at?: string
           email?: string
           full_name?: string
-          avatar_url?: string
-          department?: string
+          avatar_url?: string | null
+          department?: string | null
           role?: string
-          manager_id?: string
-          expense_limit?: number
+          manager_id?: string | null
+          expense_limit?: number | null
         }
       }
     }
