@@ -74,7 +74,7 @@ CREATE POLICY submit_own_draft_expenses ON expenses
   )
   WITH CHECK (
     auth.uid() = user_id
-    AND NEW.status = 'submitted'
+    AND status IN ('submitted')
   );
 
 -- Approvers can update expenses assigned to them
@@ -86,7 +86,7 @@ CREATE POLICY approve_assigned_expenses ON expenses
   )
   WITH CHECK (
     auth.uid() = approver_id
-    AND NEW.status IN ('approved', 'rejected')
+    AND status IN ('approved', 'rejected')
   );
 
 -- Users can delete their own draft expenses
