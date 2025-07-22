@@ -14,8 +14,12 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getOAuthCallbackUrl, validateConfig } from './config'
 
 let supabaseInstance: SupabaseClient<Database> | null = null;
+
+// Validate configuration on module load
+validateConfig();
 
 // Singleton pattern to ensure only one client instance exists
 export const getSupabaseClient = () => {
@@ -41,6 +45,39 @@ export const resetSupabaseClient = () => {
   supabaseInstance = null;
 };
 
+// Helper function for Google OAuth sign in
+export const signInWithGoogle = async () => {
+  const supabase = getSupabaseClient();
+  const redirectTo = getOAuthCallbackUrl();
+  
+  console.log('🔄 Initiating Google OAuth sign in...', {
+    redirectTo,
+    environment: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV
+  });
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      // No queryParams needed - using default OAuth flow
+    }
+  });
+
+  if (error) {
+    console.error('❌ OAuth initiation failed:', error);
+    throw error;
+  }
+
+  console.log('✅ OAuth initiated successfully:', {
+    provider: 'google',
+    url: data.url,
+    redirectTo
+  });
+
+  return data;
+};
+
 // Type definitions
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
@@ -48,20 +85,20 @@ export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 // Get user profile from database
 export async function getUserProfile(userId: string): Promise<Profile | null> {
-  const supabase = getSupabaseClient()
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 // Create user profile in database
 export async function createUserProfile(user: any): Promise<Profile | null> {
-  const supabase = getSupabaseClient()
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .insert({
@@ -72,10 +109,10 @@ export async function createUserProfile(user: any): Promise<Profile | null> {
       role: 'user'
     })
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 // Update user profile in database
@@ -83,51 +120,23 @@ export async function updateUserProfile(
   userId: string,
   updates: Partial<Profile>
 ): Promise<Profile | null> {
-  const supabase = getSupabaseClient()
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
     .eq('id', userId)
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
-}
-
-// Clean Auth Functions - Google Only
-export const signInWithGoogle = async () => {
-  // Only access window in client-side
-  if (typeof window === 'undefined') {
-    return { data: null, error: new Error('Cannot sign in during server-side rendering') }
-  }
-
-  // Determine the correct redirect URL based on environment
-  const currentOrigin = window.location.origin;
-  const redirectUrl = `${currentOrigin}/auth/callback`;
-  
-  console.log('🔗 OAuth redirect URL:', redirectUrl);
-
-  const supabase = getSupabaseClient()
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectUrl,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-    }
-  })
-  
-  return { data, error }
+  if (error) throw error;
+  return data;
 }
 
 export const signOut = async () => {
-  const supabase = getSupabaseClient()
-  const { error } = await supabase.auth.signOut()
-  return { error }
-}
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
 
 export const getCurrentUser = async () => {
   const supabase = getSupabaseClient()
