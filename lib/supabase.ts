@@ -56,7 +56,7 @@ export const signInWithGoogle = async () => {
     vercelEnv: process.env.VERCEL_ENV
   });
   
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  return await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo,
@@ -66,19 +66,6 @@ export const signInWithGoogle = async () => {
       }
     }
   });
-
-  if (error) {
-    console.error('❌ OAuth initiation failed:', error);
-    throw error;
-  }
-
-  console.log('✅ OAuth initiated successfully:', {
-    provider: 'google',
-    url: data.url,
-    redirectTo
-  });
-
-  return data;
 };
 
 // Type definitions

@@ -37,9 +37,16 @@ export function LoginForm() {
       if (error) {
         setError(error.message)
         console.error('OAuth error:', error)
-      } else {
+        setLoading(false)
+      } else if (data?.url) {
         console.log('OAuth initiated successfully:', data)
+        // Redirect to the OAuth URL
+        window.location.href = data.url
         // Don't set loading to false - user will be redirected
+      } else {
+        setError('No OAuth URL returned')
+        console.error('No OAuth URL returned')
+        setLoading(false)
       }
     } catch (err) {
       setError('An unexpected error occurred')
