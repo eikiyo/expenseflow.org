@@ -62,7 +62,8 @@ export const signInWithGoogle = async () => {
       redirectTo,
       skipBrowserRedirect: false,
       queryParams: {
-        prompt: 'select_account' // Always show account selector
+        access_type: 'offline',
+        prompt: 'select_account'
       }
     }
   });
