@@ -68,7 +68,22 @@ CREATE POLICY admin_error_alerts ON error_alerts
 
 -- Update existing policies to handle status changes correctly
 DROP POLICY IF EXISTS submit_own_draft_expenses ON expenses;
-CREATE POLICY submit_own_draft_expenses ON expenses
+
+-- Policy for users to view their own expenses
+CREATE POLICY view_own_expenses ON expenses
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Policy for users to create draft expenses
+CREATE POLICY create_draft_expenses ON expenses
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = user_id
+    AND status = 'draft'
+  );
+
+-- Policy for users to update their own draft expenses
+CREATE POLICY update_own_draft_expenses ON expenses
   FOR UPDATE
   USING (
     auth.uid() = user_id
@@ -76,14 +91,28 @@ CREATE POLICY submit_own_draft_expenses ON expenses
   )
   WITH CHECK (
     auth.uid() = user_id
-    AND (
-      (status = 'draft') OR
-      (status = 'submitted' AND OLD.status = 'draft')
-    )
+    AND status = 'draft'
   );
 
-DROP POLICY IF EXISTS approve_assigned_expenses ON expenses;
-CREATE POLICY approve_assigned_expenses ON expenses
+-- Policy for users to submit their own draft expenses
+CREATE POLICY submit_draft_expenses ON expenses
+  FOR UPDATE
+  USING (
+    auth.uid() = user_id
+    AND status = 'draft'
+  )
+  WITH CHECK (
+    auth.uid() = user_id
+    AND status = 'submitted'
+  );
+
+-- Policy for approvers to view assigned expenses
+CREATE POLICY view_assigned_expenses ON expenses
+  FOR SELECT
+  USING (auth.uid() = approver_id);
+
+-- Policy for approvers to approve/reject submitted expenses
+CREATE POLICY approve_reject_expenses ON expenses
   FOR UPDATE
   USING (
     auth.uid() = approver_id
@@ -91,8 +120,5 @@ CREATE POLICY approve_assigned_expenses ON expenses
   )
   WITH CHECK (
     auth.uid() = approver_id
-    AND (
-      (status = 'submitted') OR
-      (status IN ('approved', 'rejected') AND OLD.status = 'submitted')
-    )
+    AND status IN ('approved', 'rejected')
   ); 
