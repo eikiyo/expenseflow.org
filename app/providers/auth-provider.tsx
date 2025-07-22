@@ -50,7 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
     if (error) {
-      Logger.auth.error('Google sign in failed', { error })
+      Logger.auth.error('Google sign in failed', { 
+        message: error.message,
+        meta: { name: error.name }
+      })
       throw error
     }
     Logger.auth.debug('OAuth redirect initiated')
@@ -61,7 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = getSupabaseClient()
     const { error } = await supabase.auth.signOut()
     if (error) {
-      Logger.auth.error('Sign out failed', { error })
+      Logger.auth.error('Sign out failed', { 
+        message: error.message,
+        meta: { name: error.name }
+      })
       throw error
     }
     setUser(null)
@@ -78,25 +84,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          Logger.auth.error('Error getting session', { error })
+          Logger.auth.error('Error getting session', { 
+            message: error.message,
+            meta: { name: error.name }
+          })
           setLoading(false)
           return
         }
 
         if (session?.user) {
           Logger.auth.info('Found existing session', {
-            userId: session.user.id,
-            email: session.user.email,
-            provider: session.user.app_metadata?.provider,
-            lastSignIn: session.user.last_sign_in_at
+            meta: {
+              userId: session.user.id,
+              email: session.user.email,
+              provider: session.user.app_metadata?.provider,
+              lastSignIn: session.user.last_sign_in_at
+            }
           })
           setUser(session.user)
         } else {
           Logger.auth.info('No existing session found')
           setUser(null)
         }
-      } catch (error) {
-        Logger.auth.error('Error initializing auth', { error })
+      } catch (error: any) {
+        Logger.auth.error('Error initializing auth', { 
+          message: error.message,
+          meta: { name: error.name }
+        })
       } finally {
         setLoading(false)
       }
@@ -108,19 +122,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         Logger.auth.debug('Auth state changed', {
-          event,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-          provider: session?.user?.app_metadata?.provider,
-          lastSignIn: session?.user?.last_sign_in_at
+          meta: {
+            event,
+            userId: session?.user?.id,
+            email: session?.user?.email,
+            provider: session?.user?.app_metadata?.provider,
+            lastSignIn: session?.user?.last_sign_in_at
+          }
         })
 
         if (session?.user) {
           Logger.auth.info('User authenticated', {
-            userId: session.user.id,
-            email: session.user.email,
-            provider: session.user.app_metadata?.provider,
-            lastSignIn: session.user.last_sign_in_at
+            meta: {
+              userId: session.user.id,
+              email: session.user.email,
+              provider: session.user.app_metadata?.provider,
+              lastSignIn: session.user.last_sign_in_at
+            }
           })
           setUser(session.user)
         } else {
