@@ -1,3 +1,14 @@
+-- Create error_alerts table if it doesn't exist
+CREATE TABLE IF NOT EXISTS error_alerts (
+  id SERIAL PRIMARY KEY,
+  error_log_id INTEGER REFERENCES error_logs(id),
+  alert_type VARCHAR NOT NULL,
+  alert_status VARCHAR NOT NULL DEFAULT 'pending',
+  alert_data JSONB,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Enable RLS on error_alerts table
 ALTER TABLE error_alerts ENABLE ROW LEVEL SECURITY;
 
