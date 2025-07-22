@@ -19,26 +19,43 @@ import { saveExpense } from '@/app/services/expense-service';
 import { validateExpense } from '@/app/utils/validation';
 import { formatValidationErrors } from '@/app/utils/errors';
 import {
-  ExpenseStatus,
-  TransportationType,
-  type Expense,
+  type ExpenseFormData,
   type TravelExpense,
-  type ExpenseFormState,
-  type ExpenseFormAction
+  type FormValidationState,
+  type ExpenseSubmissionState
 } from '@/app/types/expense';
+
+// Define the form state interface
+interface ExpenseFormState {
+  expense: ExpenseFormData;
+  isDirty: boolean;
+  currentStep: number;
+  errors: Record<string, string>;
+  lastSaved?: Date;
+}
+
+// Define the form action types
+type ExpenseFormAction = 
+  | { type: 'SET_EXPENSE'; payload: Partial<ExpenseFormData> }
+  | { type: 'SET_STEP'; payload: number }
+  | { type: 'SET_ERRORS'; payload: Record<string, string> }
+  | { type: 'MARK_SAVED'; payload: Date }
+  | { type: 'RESET_FORM' };
 
 const initialTravelExpense: TravelExpense = {
   type: 'travel',
-  userId: '',
-  status: ExpenseStatus.DRAFT,
+  status: 'draft',
   totalAmount: 0,
   currency: 'BDT',
   description: '',
+  businessPurpose: '',
   startDate: new Date(),
   endDate: new Date(),
   startLocation: { address: '' },
   endLocation: { address: '' },
-  transportationType: TransportationType.PERSONAL_CAR
+  transportationType: 'car',
+  vehicleOwnership: 'own',
+  roundTrip: false
 };
 
 const initialState: ExpenseFormState = {
@@ -54,7 +71,7 @@ function expenseFormReducer(state: ExpenseFormState, action: ExpenseFormAction):
     case 'SET_EXPENSE': {
       const newState = {
         ...state,
-        expense: { ...state.expense, ...action.payload } as Expense,
+        expense: { ...state.expense, ...action.payload } as ExpenseFormData,
         isDirty: true
       };
       const validationResult = validateExpense(newState.expense);
@@ -87,7 +104,7 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [state, dispatch] = useReducer(expenseFormReducer, {
     ...initialState,
-    expense: { ...initialTravelExpense, userId: user?.id || '' } as Expense
+    expense: { ...initialTravelExpense } as ExpenseFormData
   });
 
   useEffect(() => {
@@ -100,10 +117,17 @@ export function ExpenseProvider({ children }: { children: ReactNode }) {
   }, [state.isDirty, state.expense]);
 
   const handleSave = async () => {
+    if (!user?.id) {
+      console.error('User not authenticated');
+      return;
+    }
+    
     try {
-      const savedExpense = await saveExpense(state.expense);
-      dispatch({ type: 'MARK_SAVED', payload: new Date() });
-      dispatch({ type: 'SET_EXPENSE', payload: savedExpense });
+      const savedExpense = await saveExpense(state.expense, user.id);
+      if (savedExpense) {
+        dispatch({ type: 'MARK_SAVED', payload: new Date() });
+        dispatch({ type: 'SET_EXPENSE', payload: savedExpense });
+      }
     } catch (error) {
       console.error('Error saving expense:', error);
       // Handle error appropriately

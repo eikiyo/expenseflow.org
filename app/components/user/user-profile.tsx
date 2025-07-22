@@ -23,20 +23,15 @@ export function UserProfile({ onBack }: UserProfileProps) {
     return <div className="text-center py-8">User profile not found.</div>;
   }
 
-  // Map profile to the expected structure with new unified fields
+  // Map profile to the expected structure with simplified fields
   const userData = {
     fullName: profile.full_name,
     email: profile.email,
     department: profile.department || '',
     role: profile.role,
-    avatarUrl: profile.avatar_url || profile.profile_picture_url || '/placeholder.jpg',
-    expenseLimit: profile.expense_limit || 0,
-    // New unified fields
-    employeeId: profile.employee_id || '',
-    phone: profile.phone || '',
-    address: profile.address || '',
+    avatarUrl: profile.avatar_url || '/placeholder.jpg',
+    approvalLimit: profile.approval_limit || 0,
     monthlyBudget: profile.monthly_budget || 0,
-    singleTransactionLimit: profile.single_transaction_limit || 0,
     isActive: profile.is_active ?? true
   };
 
@@ -102,9 +97,6 @@ export function UserProfile({ onBack }: UserProfileProps) {
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold text-gray-900">{userData.fullName}</h2>
                   <p className="text-gray-500">{userData.email}</p>
-                  {userData.employeeId && (
-                    <p className="text-sm text-gray-500">Employee ID: {userData.employeeId}</p>
-                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
@@ -120,8 +112,8 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <span className="ml-2 text-gray-900">৳{userData.monthlyBudget.toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Transaction Limit:</span>
-                    <span className="ml-2 text-gray-900">৳{userData.singleTransactionLimit.toLocaleString()}</span>
+                    <span className="text-sm font-medium text-gray-500">Approval Limit:</span>
+                    <span className="ml-2 text-gray-900">৳{userData.approvalLimit.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -182,15 +174,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Employee ID</label>
-                    <input
-                      type="text"
-                      value={userData.employeeId}
-                      disabled
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
@@ -200,16 +184,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input
-                      type="tel"
-                      value={userData.phone}
-                      disabled={!editMode}
-                      placeholder="Enter phone number"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                    />
-                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Department</label>
                     <input
@@ -234,16 +209,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <textarea
-                    value={userData.address}
-                    disabled={!editMode}
-                    placeholder="Enter full address"
-                    rows={3}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
+
               </div>
             )}
 
@@ -264,30 +230,17 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <p className="mt-1 text-sm text-gray-500">Maximum budget allocation per month</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Single Transaction Limit</label>
+                    <label className="block text-sm font-medium text-gray-700">Approval Limit</label>
                     <div className="mt-1 relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
                       <input
                         type="number"
-                        value={userData.singleTransactionLimit}
+                        value={userData.approvalLimit}
                         disabled={!editMode}
                         className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                       />
                     </div>
-                    <p className="mt-1 text-sm text-gray-500">Maximum amount per single expense</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Expense Limit</label>
-                    <div className="mt-1 relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
-                      <input
-                        type="number"
-                        value={userData.expenseLimit}
-                        disabled={!editMode}
-                        className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                      />
-                    </div>
-                    <p className="mt-1 text-sm text-gray-500">Overall expense authorization limit</p>
+                    <p className="mt-1 text-sm text-gray-500">Maximum amount you can approve</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Account Status</label>

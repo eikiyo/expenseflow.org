@@ -62,7 +62,7 @@ export function useRoleAccess(): RoleAccess {
 
     // Managers can approve up to their limit
     if (profile.role === 'manager') {
-      return amount <= (profile.expense_limit || 0)
+      return amount <= (profile.approval_limit || 0)
     }
 
     return false

@@ -1,32 +1,35 @@
 /**
- * EXPENSE SUBMISSION API ROUTE
+ * EXPENSE SUBMIT API ROUTE
  * 
- * This file handles expense submission for approval.
- * Validates expense data and routes to appropriate approvers.
+ * This file handles expense submission for approval using the simplified schema.
+ * Uses the new 5-table architecture with JSON data for type-specific information.
  * 
- * Dependencies: Next.js, Supabase
+ * Dependencies: @supabase/supabase-js, expense service
  * Used by: Expense submission components
  * 
  * @author ExpenseFlow Team
  * @since 2024-01-01
  */
 
-import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { validateExpense } from '@/app/utils/validation'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
+import { submitExpense, getExpenseById } from '@/app/services/expense-service'
 
-// POST /api/expenses/[id]/submit - Submit an expense for approval
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+
+// POST /api/expenses/[id]/submit - Submit expense for approval
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get the current user
+    // Get user from auth
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -34,21 +37,27 @@ export async function POST(
       )
     }
 
-    // Get the expense
-    const { data: expense, error: fetchError } = await supabase
-      .from('expenses')
-      .select('*, profiles!expenses_userId_fkey (manager_id)')
-      .eq('id', params.id)
-      .eq('userId', user.id)
-      .single()
+    const expenseId = params.id
 
-    if (fetchError || !expense) {
+    // Get the expense to verify ownership and status
+    const expense = await getExpenseById(expenseId)
+    
+    if (!expense) {
       return NextResponse.json(
         { error: 'Expense not found' },
         { status: 404 }
       )
     }
 
+    // Verify ownership
+    if (expense.user_id !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+
+    // Verify expense is in draft status
     if (expense.status !== 'draft') {
       return NextResponse.json(
         { error: 'Only draft expenses can be submitted' },
@@ -56,73 +65,76 @@ export async function POST(
       )
     }
 
-    // Validate the expense data
-    const validationResult = validateExpense(expense)
-    if (!validationResult.success) {
+    // Get user profile to check approval limits
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('approval_limit, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
       return NextResponse.json(
-        { 
-          error: 'Invalid expense data',
-          details: validationResult.error
-        },
-        { status: 400 }
+        { error: 'User profile not found' },
+        { status: 404 }
       )
     }
 
-    // Get the appropriate approver based on amount and user's manager
-    const { data: managers } = await supabase
-      .from('profiles')
-      .select('id, role, expense_limit')
-      .eq('role', 'manager')
-      .order('expense_limit', { ascending: false })
+    // Check if user can approve their own expense (admin/manager)
+    const canSelfApprove = profile.role === 'admin' || profile.role === 'manager'
+    const approvalLimit = profile.approval_limit || 0
 
-    if (!managers) {
+    // Submit the expense
+    const success = await submitExpense(expenseId, user.id)
+
+    if (!success) {
       return NextResponse.json(
-        { error: 'No approvers found' },
+        { error: 'Failed to submit expense' },
         { status: 500 }
       )
     }
 
-    // Find the appropriate approver based on expense amount
-    const approver = managers.find(m => 
-      m.expense_limit && m.expense_limit >= expense.totalAmount
-    )
+    // If user can self-approve and amount is within limit, auto-approve
+    if (canSelfApprove && expense.total_amount <= approvalLimit) {
+      const { data: { user: approver } } = await supabase.auth.getUser()
+      
+      if (approver) {
+        const { error: approveError } = await supabase
+          .from('expenses')
+          .update({
+            status: 'approved',
+            approved_at: new Date().toISOString(),
+            approver_id: approver.id,
+            approval_notes: 'Auto-approved within approval limit'
+          })
+          .eq('id', expenseId)
 
-    // If no manager has sufficient limit, route to admin
-    const { data: admin } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'admin')
-      .single()
+        if (!approveError) {
+          // Create approval record
+          await supabase
+            .from('approvals')
+            .insert({
+              expense_id: expenseId,
+              approver_id: approver.id,
+              action: 'approved',
+              notes: 'Auto-approved within approval limit'
+            })
 
-    const approverId = approver?.id || admin?.id
-
-    if (!approverId) {
-      return NextResponse.json(
-        { error: 'No eligible approver found' },
-        { status: 500 }
-      )
+          return NextResponse.json({ 
+            message: 'Expense submitted and auto-approved',
+            status: 'approved'
+          })
+        }
+      }
     }
 
-    // Update the expense status and set the approver
-    const { data, error } = await supabase
-      .from('expenses')
-      .update({
-        status: 'submitted',
-        approver_id: approverId,
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', params.id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
+    return NextResponse.json({ 
+      message: 'Expense submitted for approval',
+      status: 'submitted'
+    })
   } catch (error) {
-    console.error('Error submitting expense:', error)
+    console.error('Error in POST /api/expenses/[id]/submit:', error)
     return NextResponse.json(
-      { error: 'Failed to submit expense' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

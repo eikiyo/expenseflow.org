@@ -3,6 +3,7 @@
  * 
  * This file sets up a singleton Supabase client using the SSR package.
  * Uses @supabase/ssr for better session handling and cookie compatibility.
+ * Updated for simplified 5-table architecture.
  * 
  * Dependencies: @supabase/ssr
  * Used by: All components and services requiring database access
@@ -108,19 +109,13 @@ export const signInWithGoogle = async () => {
   window.location.href = data.url;
 };
 
-// Type definitions
+// Type definitions for simplified schema
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 export type Expense = Database['public']['Tables']['expenses']['Row'];
-
-export interface ExpenseSubmission extends Expense {
-  readonly id: string;
-  user_id: string;
-  created_at: string;
-  type: 'travel' | 'maintenance' | 'requisition';
-  // Base expense fields inherited from Expense type
-}
+export type Attachment = Database['public']['Tables']['attachments']['Row'];
+export type Approval = Database['public']['Tables']['approvals']['Row'];
 
 export const signOut = async () => {
   Logger.auth.info('Signing out')
@@ -151,22 +146,39 @@ export const getCurrentUser = async () => {
 }
 
 /**
- * Retrieves all expense submissions for a specific user, ordered by creation date.
- * Logs the operation and returns an array of submissions or an empty array on error.
- * @param userId - The ID of the user whose submissions to fetch
- * @returns Promise<ExpenseSubmission[]>
+ * Retrieves all expenses for a specific user, ordered by creation date.
+ * Uses the simplified expenses table with JSON data.
+ * @param userId - The ID of the user whose expenses to fetch
+ * @param status - Optional status filter
+ * @param type - Optional type filter
+ * @returns Promise<Expense[]>
  */
-export const getUserSubmissions = async (userId: string): Promise<ExpenseSubmission[]> => {
-  Logger.db.debug('Fetching user submissions', { meta: { userId } });
+export const getUserExpenses = async (
+  userId: string,
+  status?: 'draft' | 'submitted' | 'approved' | 'rejected',
+  type?: 'travel' | 'maintenance' | 'requisition'
+): Promise<Expense[]> => {
+  Logger.db.debug('Fetching user expenses', { meta: { userId, status, type } });
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  
+  let query = supabase
     .from('expenses')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
-    Logger.db.error('Error fetching user submissions', { 
+    Logger.db.error('Error fetching user expenses', { 
       message: error.message, 
       meta: { 
         code: error.code,
@@ -176,33 +188,44 @@ export const getUserSubmissions = async (userId: string): Promise<ExpenseSubmiss
     return [];
   }
 
-  Logger.db.debug('User submissions fetched', { meta: { userId, count: data?.length ?? 0 } });
-  return (data ?? []) as ExpenseSubmission[];
+  Logger.db.debug('User expenses fetched', { meta: { userId, count: data?.length ?? 0 } });
+  return (data ?? []) as Expense[];
 };
 
-export const createExpenseSubmission = async (submission: Partial<ExpenseSubmission>) => {
-  Logger.db.debug('Creating expense submission', { meta: submission })
+/**
+ * Creates a new expense in the simplified expenses table.
+ * @param expense - The expense data to insert
+ * @returns Promise<Expense | null>
+ */
+export const createExpense = async (expense: Database['public']['Tables']['expenses']['Insert']) => {
+  Logger.db.debug('Creating expense', { meta: expense })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('expenses')
-    .insert(submission)
+    .insert(expense)
     .select()
     .single()
 
   if (error) {
-    Logger.db.error('Error creating expense submission', { 
+    Logger.db.error('Error creating expense', { 
       message: error.message,
       meta: { code: error.code }
     })
     return null
   }
 
-  Logger.db.debug('Expense submission created', { meta: { id: data?.id } })
-  return data as ExpenseSubmission
+  Logger.db.debug('Expense created', { meta: { id: data?.id } })
+  return data as Expense
 }
 
-export const updateExpenseSubmission = async (id: string, updates: Partial<ExpenseSubmission>) => {
-  Logger.db.debug('Updating expense submission', { meta: { id, updates } })
+/**
+ * Updates an existing expense in the simplified expenses table.
+ * @param id - The expense ID to update
+ * @param updates - The updates to apply
+ * @returns Promise<Expense | null>
+ */
+export const updateExpense = async (id: string, updates: Partial<Expense>) => {
+  Logger.db.debug('Updating expense', { meta: { id, updates } })
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('expenses')
@@ -212,16 +235,123 @@ export const updateExpenseSubmission = async (id: string, updates: Partial<Expen
     .single()
 
   if (error) {
-    Logger.db.error('Error updating expense submission', { 
+    Logger.db.error('Error updating expense', { 
       message: error.message,
       meta: { code: error.code }
     })
     return null
   }
 
-  Logger.db.debug('Expense submission updated', { meta: { id: data?.id } })
-  return data as ExpenseSubmission
+  Logger.db.debug('Expense updated', { meta: { id: data?.id } })
+  return data as Expense
 }
+
+/**
+ * Gets expenses pending approval for managers/admins.
+ * @param approverId - The ID of the approver
+ * @returns Promise<Expense[]>
+ */
+export const getExpensesForApproval = async (approverId: string): Promise<Expense[]> => {
+  Logger.db.debug('Fetching expenses for approval', { meta: { approverId } });
+  const supabase = getSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('expenses')
+    .select(`
+      *,
+      profiles!expenses_user_id_fkey (
+        id,
+        full_name,
+        email,
+        role,
+        department
+      )
+    `)
+    .eq('status', 'submitted')
+    .order('submitted_at', { ascending: true });
+
+  if (error) {
+    Logger.db.error('Error fetching expenses for approval', { 
+      message: error.message, 
+      meta: { 
+        code: error.code,
+        approverId 
+      } 
+    });
+    return [];
+  }
+
+  Logger.db.debug('Expenses for approval fetched', { meta: { approverId, count: data?.length ?? 0 } });
+  return (data ?? []) as Expense[];
+};
+
+/**
+ * Gets expense attachments for a specific expense.
+ * @param expenseId - The expense ID
+ * @returns Promise<Attachment[]>
+ */
+export const getExpenseAttachments = async (expenseId: string): Promise<Attachment[]> => {
+  Logger.db.debug('Fetching expense attachments', { meta: { expenseId } });
+  const supabase = getSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('attachments')
+    .select('*')
+    .eq('expense_id', expenseId)
+    .order('uploaded_at', { ascending: false });
+
+  if (error) {
+    Logger.db.error('Error fetching expense attachments', { 
+      message: error.message, 
+      meta: { 
+        code: error.code,
+        expenseId 
+      } 
+    });
+    return [];
+  }
+
+  Logger.db.debug('Expense attachments fetched', { meta: { expenseId, count: data?.length ?? 0 } });
+  return (data ?? []) as Attachment[];
+};
+
+/**
+ * Gets approval history for a specific expense.
+ * @param expenseId - The expense ID
+ * @returns Promise<Approval[]>
+ */
+export const getExpenseApprovals = async (expenseId: string): Promise<Approval[]> => {
+  Logger.db.debug('Fetching expense approvals', { meta: { expenseId } });
+  const supabase = getSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('approvals')
+    .select(`
+      *,
+      profiles!approvals_approver_id_fkey (
+        id,
+        full_name,
+        email,
+        role
+      )
+    `)
+    .eq('expense_id', expenseId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    Logger.db.error('Error fetching expense approvals', { 
+      message: error.message, 
+      meta: { 
+        code: error.code,
+        expenseId 
+      } 
+    });
+    return [];
+  }
+
+  Logger.db.debug('Expense approvals fetched', { meta: { expenseId, count: data?.length ?? 0 } });
+  return (data ?? []) as Approval[];
+};
 
 // File upload helper
 export const uploadFile = async (bucket: string, path: string, file: File) => {

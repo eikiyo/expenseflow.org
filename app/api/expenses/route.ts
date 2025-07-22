@@ -1,29 +1,33 @@
 /**
- * EXPENSE API ROUTES
+ * EXPENSES API ROUTE
  * 
- * This file handles all expense-related API endpoints.
- * Provides CRUD operations for expenses with proper validation.
+ * This file handles all expense-related API endpoints using the simplified schema.
+ * Uses the new 5-table architecture with JSON data for type-specific information.
  * 
- * Dependencies: Next.js, Supabase, Zod
- * Used by: Expense components and services
+ * Dependencies: @supabase/supabase-js, expense service
+ * Used by: All expense components and forms
  * 
  * @author ExpenseFlow Team
  * @since 2024-01-01
  */
 
-import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { validateExpense } from '@/app/utils/validation'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
+import { saveExpense, getUserExpenses, getExpenseById } from '@/app/services/expense-service'
+import type { ExpenseFormData } from '@/app/types/expense'
 
-// GET /api/expenses - Get all expenses for the current user
-export async function GET() {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+
+// GET /api/expenses - Get user expenses
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get the current user
+    // Get user from auth
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -31,210 +35,83 @@ export async function GET() {
       )
     }
 
-    // Get all expenses for the user
-    const { data: expenses, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('userId', user.id)
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-
-    return NextResponse.json(expenses)
-  } catch (error) {
-    console.error('Error fetching expenses:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch expenses' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST /api/expenses - Create a new expense
-export async function POST(request: Request) {
-  try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Get the expense data from the request
-    const expense = await request.json()
-    
-    // Validate the expense data
-    const validationResult = validateExpense(expense)
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid expense data', details: validationResult.error },
-        { status: 400 }
-      )
-    }
-
-    // Create the expense
-    const { data, error } = await supabase
-      .from('expenses')
-      .insert({
-        ...validationResult.data,
-        userId: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error creating expense:', error)
-    return NextResponse.json(
-      { error: 'Failed to create expense' },
-      { status: 500 }
-    )
-  }
-}
-
-// PUT /api/expenses - Update an existing expense
-export async function PUT(request: Request) {
-  try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Get the expense data from the request
-    const expense = await request.json()
-    
-    // Validate the expense data
-    const validationResult = validateExpense(expense)
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid expense data', details: validationResult.error },
-        { status: 400 }
-      )
-    }
-
-    // Ensure the expense belongs to the user
-    const { data: existingExpense, error: fetchError } = await supabase
-      .from('expenses')
-      .select('userId')
-      .eq('id', expense.id)
-      .single()
-
-    if (fetchError || !existingExpense) {
-      return NextResponse.json(
-        { error: 'Expense not found' },
-        { status: 404 }
-      )
-    }
-
-    if (existingExpense.userId !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      )
-    }
-
-    // Update the expense
-    const { data, error } = await supabase
-      .from('expenses')
-      .update({
-        ...validationResult.data,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', expense.id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error updating expense:', error)
-    return NextResponse.json(
-      { error: 'Failed to update expense' },
-      { status: 500 }
-    )
-  }
-}
-
-// DELETE /api/expenses?id={id} - Delete a draft expense
-export async function DELETE(request: Request) {
-  try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Get the expense ID from the URL
+    // Get query parameters
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Expense ID is required' },
-        { status: 400 }
-      )
-    }
+    const status = searchParams.get('status') as 'draft' | 'submitted' | 'approved' | 'rejected' | null
+    const type = searchParams.get('type') as 'travel' | 'maintenance' | 'requisition' | null
 
-    // Ensure the expense belongs to the user and is in draft status
-    const { data: expense, error: fetchError } = await supabase
-      .from('expenses')
-      .select('userId, status')
-      .eq('id', id)
-      .single()
+    // Get user expenses
+    const expenses = await getUserExpenses(user.id, status || undefined, type || undefined)
 
-    if (fetchError || !expense) {
-      return NextResponse.json(
-        { error: 'Expense not found' },
-        { status: 404 }
-      )
-    }
+    return NextResponse.json({ expenses })
+  } catch (error) {
+    console.error('Error in GET /api/expenses:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
 
-    if (expense.userId !== user.id) {
+// POST /api/expenses - Create new expense
+export async function POST(request: NextRequest) {
+  try {
+    // Get user from auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 403 }
+        { status: 401 }
       )
     }
 
-    if (expense.status !== 'draft') {
+    // Parse request body
+    const body = await request.json()
+    const formData: ExpenseFormData = body.expense
+
+    // Validate required fields
+    if (!formData || !formData.type || !formData.description || !formData.totalAmount) {
       return NextResponse.json(
-        { error: 'Only draft expenses can be deleted' },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    // Delete the expense
-    const { error } = await supabase
-      .from('expenses')
-      .delete()
-      .eq('id', id)
+    // Validate business purpose
+    if (!formData.businessPurpose || formData.businessPurpose.length < 200) {
+      return NextResponse.json(
+        { error: 'Business purpose must be at least 200 characters' },
+        { status: 400 }
+      )
+    }
 
-    if (error) throw error
+    // Validate total amount
+    if (formData.totalAmount <= 0) {
+      return NextResponse.json(
+        { error: 'Total amount must be greater than 0' },
+        { status: 400 }
+      )
+    }
 
-    return NextResponse.json({ success: true })
+    // Save expense to database
+    const savedExpense = await saveExpense(formData, user.id)
+
+    if (!savedExpense) {
+      return NextResponse.json(
+        { error: 'Failed to save expense' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ 
+      expense: savedExpense,
+      message: 'Expense saved successfully' 
+    })
   } catch (error) {
-    console.error('Error deleting expense:', error)
+    console.error('Error in POST /api/expenses:', error)
     return NextResponse.json(
-      { error: 'Failed to delete expense' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

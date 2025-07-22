@@ -25,10 +25,9 @@ export async function POST(request: Request) {
       .insert({
         user_id: to,
         title: subject,
-        content: html,
-        type: notification.type,
-        status: 'pending',
-        metadata: notification
+        message: html,
+        type: notification.type || 'info',
+        is_read: false
       });
 
     if (dbError) {

@@ -15,14 +15,12 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 export interface Notification {
   id?: string;
-  userId: string;
+  user_id: string;
   title: string;
-  content: string;
-  type: 'expense_submitted' | 'expense_approved' | 'expense_rejected' | 'comment_added';
-  status: 'pending' | 'sent' | 'failed';
-  metadata?: any;
-  createdAt?: Date;
-  readAt?: Date;
+  message: string;
+  type: 'error' | 'info' | 'success' | 'warning';
+  is_read: boolean;
+  created_at: string;
 }
 
 export async function sendNotification(to: string, subject: string, html: string, notification: Partial<Notification>) {
@@ -58,7 +56,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
   const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({ is_read: true })
     .eq('id', notificationId);
 
   if (error) throw error;
@@ -68,9 +66,8 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('notifications')
-    .update({ read_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .is('read_at', null);
+    .update({ is_read: true })
+    .eq('user_id', userId);
 
   if (error) throw error;
 }
@@ -90,11 +87,12 @@ export async function notifyExpenseSubmitted(expense: any, submitter: any, appro
   `;
 
   return sendNotification(approver.email, subject, html, {
-    userId: approver.id,
-    type: 'expense_submitted',
+    user_id: approver.id,
+    type: 'info',
     title: subject,
-    content: html,
-    metadata: { expenseId: expense.id, submitterId: submitter.id }
+    message: html,
+    is_read: false,
+    created_at: new Date().toISOString()
   });
 }
 
@@ -113,10 +111,11 @@ export async function notifyExpenseStatus(expense: any, submitter: any, approver
   `;
 
   return sendNotification(submitter.email, subject, html, {
-    userId: submitter.id,
-    type: `expense_${status}`,
+    user_id: submitter.id,
+    type: status === 'approved' ? 'success' : 'error',
     title: subject,
-    content: html,
-    metadata: { expenseId: expense.id, approverId: approver.id, comment }
+    message: html,
+    is_read: false,
+    created_at: new Date().toISOString()
   });
 } 
