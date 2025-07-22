@@ -45,6 +45,29 @@ export default function ExpenseApp() {
     }
   }, [])
 
+  // Handle OAuth callback parameters
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const code = urlParams.get('code')
+      const state = urlParams.get('state')
+      const error = urlParams.get('error')
+      
+      console.log('[OAuth] URL parameters:', { code: !!code, state: !!state, error })
+      
+      // If we have OAuth callback parameters, let Supabase handle them
+      if (code && state) {
+        console.log('[OAuth] Detected callback parameters, letting Supabase handle automatically')
+        // Clean up URL to remove the parameters
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else if (error) {
+        console.log('[OAuth] Error in callback:', error)
+        setAuthError(`OAuth error: ${error}`)
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
+  }, [])
+
   // Show loading while checking auth
   if (authLoading || profileLoading) {
     return (
