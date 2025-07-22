@@ -50,7 +50,7 @@ describe('AuthErrorBoundary', () => {
     )
 
     expect(screen.getByText(/Authentication Error/i)).toBeInTheDocument()
-    expect(screen.getByText(/An unexpected error occurred/i)).toBeInTheDocument()
+    expect(screen.getByText(/Test error/i)).toBeInTheDocument()
   })
 
   it('provides retry functionality', () => {

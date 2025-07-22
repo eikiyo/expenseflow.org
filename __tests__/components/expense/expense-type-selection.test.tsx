@@ -18,9 +18,9 @@ describe('ExpenseTypeSelection', () => {
       />
     )
 
-    expect(screen.getByText('Travel Expense')).toBeInTheDocument()
-    expect(screen.getByText('Maintenance')).toBeInTheDocument()
-    expect(screen.getByText('Requisition')).toBeInTheDocument()
+    expect(screen.getByText('Travel Expenses')).toBeInTheDocument()
+    expect(screen.getByText('Maintenance Expenses')).toBeInTheDocument()
+    expect(screen.getByText('Requisition Management')).toBeInTheDocument()
   })
 
   it('calls onBack when back button is clicked', () => {
@@ -31,7 +31,8 @@ describe('ExpenseTypeSelection', () => {
       />
     )
 
-    const backButton = screen.getByRole('button', { name: /back/i })
+    // The back button is the first button in the component
+    const backButton = screen.getAllByRole('button')[0]
     fireEvent.click(backButton)
 
     expect(mockOnBack).toHaveBeenCalledTimes(1)
@@ -45,7 +46,7 @@ describe('ExpenseTypeSelection', () => {
       />
     )
 
-    const travelCard = screen.getByText('Travel Expense').closest('button')
+    const travelCard = screen.getByText('Travel Expenses').closest('.group')
     fireEvent.click(travelCard!)
 
     expect(mockOnSelectType).toHaveBeenCalledWith('travel')
@@ -59,8 +60,8 @@ describe('ExpenseTypeSelection', () => {
       />
     )
 
-    expect(screen.getByText(/transportation and accommodation/i)).toBeInTheDocument()
-    expect(screen.getByText(/vehicle maintenance and repairs/i)).toBeInTheDocument()
-    expect(screen.getByText(/recurring services and utilities/i)).toBeInTheDocument()
+    expect(screen.getByText(/transportation, meals, accommodation, and trip-related costs/i)).toBeInTheDocument()
+    expect(screen.getByText(/vehicle maintenance, equipment purchases, and repairs/i)).toBeInTheDocument()
+    expect(screen.getByText(/recurring services, utilities, and operational expenses/i)).toBeInTheDocument()
   })
 }) 

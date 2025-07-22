@@ -1,3 +1,6 @@
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://localhost:54321';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test_anon_key';
+
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
