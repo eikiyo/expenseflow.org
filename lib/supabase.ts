@@ -65,6 +65,10 @@ export const resetSupabaseClient = () => {
 
 // Helper function for Google OAuth sign in
 export const signInWithGoogle = async () => {
+  if (typeof window === 'undefined') {
+    return { data: null, error: new Error('Cannot sign in during server-side rendering') }
+  }
+
   const supabase = getSupabaseClient();
   
   Logger.auth.info('Initiating Google OAuth sign in', {
@@ -74,15 +78,15 @@ export const signInWithGoogle = async () => {
     }
   });
   
-  // Let Supabase handle the entire OAuth flow with its built-in callback
+  // Let Supabase handle the entire OAuth flow automatically
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/`, // Just redirect to home page
       queryParams: {
         access_type: 'offline',
-        prompt: 'select_account'
-      }
+        prompt: 'consent',
+      },
     }
   });
 

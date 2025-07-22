@@ -31,20 +31,6 @@ export const getBaseUrl = () => {
   return APP_URLS[env];
 };
 
-// Get the OAuth callback URL for the current environment
-export const getOAuthCallbackUrl = () => {
-  // Handle both www and non-www versions
-  const baseUrl = getBaseUrl();
-  const currentUrl = typeof window !== 'undefined' ? window.location.origin : baseUrl;
-  
-  // If we're on www.expenseflow.org, use that, otherwise use the configured base URL
-  if (currentUrl.includes('www.expenseflow.org')) {
-    return 'https://www.expenseflow.org/auth/callback';
-  }
-  
-  return `${baseUrl}/auth/callback`;
-};
-
 // Get the Supabase project URL
 export const getSupabaseUrl = () => {
   return process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') || '';
