@@ -73,55 +73,6 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
-// Get user profile from database
-export async function getUserProfile(userId: string): Promise<Profile | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-// Create user profile in database
-export async function createUserProfile(user: any): Promise<Profile | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert({
-      id: user.id,
-      email: user.email,
-      full_name: user.user_metadata?.full_name || user.email,
-      avatar_url: user.user_metadata?.avatar_url,
-      role: 'user'
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-// Update user profile in database
-export async function updateUserProfile(
-  userId: string,
-  updates: Partial<Profile>
-): Promise<Profile | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
 export const signOut = async () => {
   const supabase = getSupabaseClient();
   const { error } = await supabase.auth.signOut();
