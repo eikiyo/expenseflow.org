@@ -31,7 +31,7 @@ interface RoleAccess {
 
 export function useRoleAccess(): RoleAccess {
   const { user } = useAuth()
-  const { profile } = useUserProfile()
+  const { profile, loading } = useUserProfile()
 
   // Get role level in hierarchy
   const getRoleLevel = (role: Role) => ROLE_HIERARCHY.indexOf(role)
@@ -55,14 +55,16 @@ export function useRoleAccess(): RoleAccess {
 
   // Check if user can approve an expense of given amount
   const canApproveExpense = (amount: number): boolean => {
-    if (!profile) return false
+    if (!profile || loading) {
+      return false
+    }
 
-    // Admins can approve any amount
-    if (profile.role === 'admin') return true
+    if (profile.role === 'admin') {
+      return true
+    }
 
-    // Managers can approve up to their limit
     if (profile.role === 'manager') {
-      return amount <= (profile.approval_limit || 0)
+      return amount <= (profile.single_transaction_limit || 0)
     }
 
     return false

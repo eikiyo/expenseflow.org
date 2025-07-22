@@ -23,16 +23,16 @@ export function UserProfile({ onBack }: UserProfileProps) {
     return <div className="text-center py-8">User profile not found.</div>;
   }
 
-  // Map profile to the expected structure with simplified fields
-  const userData = {
+  // Map profile data to display format
+  const displayData = {
     fullName: profile.full_name,
     email: profile.email,
-    department: profile.department || '',
     role: profile.role,
-    avatarUrl: profile.avatar_url || '/placeholder.jpg',
-    approvalLimit: profile.approval_limit || 0,
-    monthlyBudget: profile.monthly_budget || 0,
-    isActive: profile.is_active ?? true
+    department: profile.department || 'Not specified',
+    manager: 'Not assigned', // TODO: Fetch manager name
+    monthlyBudget: profile.monthly_budget ? `\$${profile.monthly_budget}` : 'Not set',
+    approvalLimit: profile.single_transaction_limit ? `\$${profile.single_transaction_limit}` : 'Not set',
+    isActive: profile.is_active ? 'Active' : 'Inactive',
   };
 
   const handleSaveChanges = () => {
@@ -88,32 +88,32 @@ export function UserProfile({ onBack }: UserProfileProps) {
             <div className="flex items-start space-x-6">
               <div className="flex-shrink-0">
                 <img
-                  src={userData.avatarUrl}
-                  alt={userData.fullName}
+                  src={profile.avatar_url || '/placeholder.jpg'}
+                  alt={profile.full_name}
                   className="h-24 w-24 rounded-full object-cover"
                 />
               </div>
               <div className="flex-1">
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-bold text-gray-900">{userData.fullName}</h2>
-                  <p className="text-gray-500">{userData.email}</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{profile.full_name}</h2>
+                  <p className="text-gray-500">{profile.email}</p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-medium text-gray-500">Department:</span>
-                    <span className="ml-2 text-gray-900">{userData.department || 'Not set'}</span>
+                    <span className="ml-2 text-gray-900">{profile.department || 'Not set'}</span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Role:</span>
-                    <span className="ml-2 text-gray-900 capitalize">{userData.role}</span>
+                    <span className="ml-2 text-gray-900 capitalize">{profile.role}</span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Monthly Budget:</span>
-                    <span className="ml-2 text-gray-900">৳{userData.monthlyBudget.toLocaleString()}</span>
+                    <span className="ml-2 text-gray-900">৳{profile.monthly_budget || 0}</span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Approval Limit:</span>
-                    <span className="ml-2 text-gray-900">৳{userData.approvalLimit.toLocaleString()}</span>
+                    <span className="ml-2 text-gray-900">৳{profile.single_transaction_limit || 0}</span>
                   </div>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <label className="block text-sm font-medium text-gray-700">Full Name</label>
                     <input
                       type="text"
-                      value={userData.fullName}
+                      value={profile.full_name}
                       disabled={!editMode}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                     />
@@ -179,7 +179,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
                       type="email"
-                      value={userData.email}
+                      value={profile.email}
                       disabled
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                     />
@@ -189,7 +189,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <label className="block text-sm font-medium text-gray-700">Department</label>
                     <input
                       type="text"
-                      value={userData.department}
+                      value={profile.department ?? ''}
                       disabled={!editMode}
                       placeholder="Enter department"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
@@ -198,7 +198,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Role</label>
                     <select
-                      value={userData.role}
+                      value={profile.role}
                       disabled={!editMode}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                     >
@@ -222,7 +222,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
                       <input
                         type="number"
-                        value={userData.monthlyBudget}
+                        value={profile.monthly_budget || 0}
                         disabled={!editMode}
                         className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                       />
@@ -235,7 +235,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">৳</span>
                       <input
                         type="number"
-                        value={userData.approvalLimit}
+                        value={profile.single_transaction_limit || 0}
                         disabled={!editMode}
                         className="pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                       />
@@ -246,11 +246,11 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <label className="block text-sm font-medium text-gray-700">Account Status</label>
                     <div className="mt-1">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        userData.isActive 
+                        profile.is_active 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {userData.isActive ? 'Active' : 'Inactive'}
+                        {profile.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                   </div>
