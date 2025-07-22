@@ -1,38 +1,79 @@
+/**
+ * SUPABASE CLIENT CONFIGURATION
+ * 
+ * This file sets up the Supabase client and defines database types.
+ * Provides typed access to Supabase services.
+ * 
+ * Dependencies: @supabase/supabase-js
+ * Used by: All components and services requiring database access
+ * 
+ * @author ExpenseFlow Team
+ * @since 2024-01-01
+ */
+
 import { createClient } from '@supabase/supabase-js'
-import { supabaseConfig } from '../config'
+import type { Database } from './database.types'
 
-if (!supabaseConfig.url || !supabaseConfig.anonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const supabaseUrl = supabaseConfig.url
-const supabaseAnonKey = supabaseConfig.anonKey
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-})
-
-// Types for our database tables
 export interface ExpenseUser {
   id: string
   email: string
   full_name: string
-  employee_id: string
-  role: 'employee' | 'manager' | 'finance' | 'admin'
+  avatar_url?: string
   department?: string
+  role: 'user' | 'manager' | 'admin'
   manager_id?: string
-  phone?: string
-  address?: string
-  monthly_budget: number
-  single_transaction_limit: number
-  profile_picture_url?: string
-  is_active: boolean
-  created_at?: string
-  updated_at?: string
+  expense_limit?: number
+}
+
+// Get user profile from database
+export async function getUserProfile(userId: string): Promise<ExpenseUser | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Create user profile in database
+export async function createUserProfile(user: any): Promise<ExpenseUser | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name || user.email,
+      avatar_url: user.user_metadata?.avatar_url,
+      role: 'user'
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Update user profile in database
+export async function updateUserProfile(
+  userId: string,
+  updates: Partial<ExpenseUser>
+): Promise<ExpenseUser | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 // Clean Auth Functions - Google Only
@@ -67,63 +108,6 @@ export const getCurrentUser = async () => {
 }
 
 // Database Functions
-export const getUserProfile = async (userId: string): Promise<ExpenseUser | null> => {
-  const { data, error } = await supabase
-    .from('expense_users')
-    .select('*')
-    .eq('id', userId)
-    .single()
-
-  if (error) {
-    console.error('Error fetching user profile:', error)
-    return null
-  }
-
-  return data
-}
-
-export const createUserProfile = async (user: any): Promise<ExpenseUser | null> => {
-  try {
-    // First check if profile already exists
-    const { data: existingProfile } = await supabase
-      .rpc('user_profile_exists', { user_id: user.id })
-
-    if (existingProfile) {
-      console.log('User profile already exists:', user.email)
-      return getUserProfile(user.id)
-    }
-
-    // Create user profile from Google OAuth data
-    const userProfile = {
-      id: user.id,
-      email: user.email,
-      full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Unknown User',
-      employee_id: `EMP-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-      role: 'employee' as const,
-      monthly_budget: 5000,
-      single_transaction_limit: 1000,
-      profile_picture_url: user.user_metadata?.avatar_url,
-      is_active: true
-    }
-
-    const { data, error } = await supabase
-      .from('expense_users')
-      .insert(userProfile)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating user profile:', error)
-      return null
-    }
-
-    return data
-  } catch (error) {
-    console.error('Error in createUserProfile:', error)
-    return null
-  }
-}
-
 export const getUserSubmissions = async (userId: string) => {
   const { data, error } = await supabase
     .from('expense_submissions')

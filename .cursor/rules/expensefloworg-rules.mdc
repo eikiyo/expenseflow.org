@@ -1,0 +1,109 @@
+---
+alwaysApply: true
+Always read supabase schema, policy and existing tables and functions before doing anything in database and back end. 
+
+1. Every expense submission must require mandatory receipt upload - No expense can be approved without proper documentation
+
+2. Business purpose field must enforce 200+ character minimum - Ensure meaningful justification for all expenses
+
+3. Implement three-tier approval workflow - Employee → Manager → Finance for amounts above single transaction limits
+
+4. Auto-calculate distances using Google Maps API - Prevent manual distance manipulation in travel expenses
+Validate expense amounts against employee budget limits - Block submissions exceeding monthly or single transaction limits
+
+5. Data Collection & Audit Rules
+
+6. Log every form field change with timestamp 
+- Track user behavior and form completion patterns
+- Store GPS coordinates for all mobile submissions 
+- Verify expense location authenticity
+- Capture device information and IP address 
+- Enhance security and fraud detection capabilities
+- Record file upload metadata including EXIF data 
+- Extract location and timestamp from receipt photos
+- Maintain complete audit trail for all approval actions 
+- Track who approved, rejected, or modified expenses
+
+7. Implement progressive form disclosure based on selections - Show only relevant fields to reduce cognitive load
+
+8. Save form progress automatically every 30 seconds - 
+- Prevent data loss during form completion
+- Provide real-time validation feedback on all inputs 
+- Immediate error messages and format guidance
+- Display budget remaining in header of all expense forms 
+- Keep users aware of their spending limits
+- Show historical expense patterns for context 
+- Help users make consistent submissions
+
+9. Use Supabase Row Level Security for all database access - Ensure users only access their own data and authorized records
+
+10. Integrate with Google OAuth exclusively for authentication - Single sign-on with company Google Workspace accounts
+
+11. Store all uploaded files in Supabase Storage with encryption - Secure document management with access controls
+
+12. Implement rate limiting on all API endpoints - Prevent abuse and ensure system stability
+
+13.Route all expense types through unified submission pipeline - Common validation, approval, and storage processes regardless of expense category
+
+Always read supabase schema, policy and existing tables and functions before doing anything in database and back end. 
+
+# Cursor AI Rules for ExpenseFlow Project
+
+## 🔴 CRITICAL: ALWAYS READ FIRST
+Before making any database-related suggestions, API endpoints, or TypeScript interfaces:
+
+1. ALWAYS reference `docs/database-schema-reference.md` 
+2. ALWAYS check the existing migration files in `database/migrations/`
+3. ALWAYS verify RLS policies before suggesting database operations
+4. ALWAYS ensure TypeScript interfaces match the exact database schema
+5. NEVER suggest database changes without checking existing constraints
+
+- Database: PostgreSQL with Supabase
+- Authentication: Supabase Auth (auth.uid())
+- All tables have RLS enabled
+- Submission numbers are auto-generated (EXP-YYYY-MM-XXXXXX)
+- Total amounts are calculated by triggers
+- Business purpose requires minimum 200 characters
+
+- Database migrations: `database/migrations/*.sql`
+- API routes: `app/api/**/*.ts` 
+- Components: `app/components/**/*.tsx`
+- Database utilities: `lib/supabase.ts`
+- Types: Match database schema exactly
+
+1. Check existing table structure in schema reference
+2. Verify RLS policies for the target table
+3. Check for existing triggers and functions
+4. Ensure foreign key relationships are maintained
+5. Verify enum types match database enums
+
+- TypeScript interfaces MUST match database schema exactly
+- API endpoints MUST respect RLS policies
+- Never bypass security policies
+- Always include proper error handling
+- Follow existing patterns in the codebase
+
+- Test with RLS enabled
+- Test with different user roles (employee, manager, finance, admin)
+- Verify cascade deletes work correctly
+- Test auto-generated fields (submission_number, total_amount)
+
+- Create API endpoints without checking RLS policies
+- Modify total_amount directly (it's calculated by triggers)
+- Set submission_number manually (it's auto-generated)
+- Bypass business_purpose length validation
+- Create TypeScript interfaces that don't match database schema
+- Ignore foreign key constraints
+- Disable RLS policies
+
+- `docs/database-schema-reference.md` for schema
+- `database/migrations/` for current database state
+- `lib/supabase.ts` for existing database functions
+- Existing component patterns before creating new ones
+
+Before any commit, always look for inconsistencies, duplicate implementations, conflicting impemenations and resolve them. Your code base needs to be as clean as possible. You will target to run the code without error 100% of the time. 
+
+Before any commit, check the whole code base for possible runtime errors and fix it
+
+---
+
