@@ -16,7 +16,7 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 interface LogOptions {
   level?: LogLevel
   module?: string
-  data?: any
+  data?: Record<string, any>
 }
 
 // Enable debug mode in development
