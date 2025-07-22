@@ -1,3 +1,16 @@
+/**
+ * LOGIN FORM COMPONENT
+ * 
+ * This component handles user authentication with Google OAuth.
+ * Provides secure login interface with error handling and loading states.
+ * 
+ * Dependencies: @/lib/supabase, react, next/image
+ * Used by: Main page when user is not authenticated
+ * 
+ * @author ExpenseFlow Team
+ * @since 2024-01-01
+ */
+
 'use client'
 
 import { useState } from 'react'

@@ -67,7 +67,7 @@ export function FileUpload({
         }
 
         // Upload with progress tracking
-        const uploadedFile = await uploadFile(file, user.id, {
+        const uploadedFile = await uploadFile(file, user.id, 'receipts', {
           onProgress: (progress) => {
             setUploadProgress(prev => ({
               ...prev,

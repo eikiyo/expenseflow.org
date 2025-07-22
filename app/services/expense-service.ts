@@ -11,7 +11,7 @@
  * @since 2024-01-01
  */
 
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 import { ExpenseStatus } from '../types/expense'
 import type { 
   TravelExpense, 
@@ -23,6 +23,7 @@ type Expense = TravelExpense | MaintenanceExpense | RequisitionExpense
 
 // Saves or updates an expense in the database
 export async function saveExpense(expense: Expense) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .upsert({
@@ -38,6 +39,7 @@ export async function saveExpense(expense: Expense) {
 
 // Retrieves an expense by ID
 export async function getExpenseById(id: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
@@ -50,6 +52,7 @@ export async function getExpenseById(id: string) {
 
 // Gets all expenses for a user
 export async function getUserExpenses(userId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
@@ -62,6 +65,7 @@ export async function getUserExpenses(userId: string) {
 
 // Gets all expenses pending approval
 export async function getPendingApprovals(approverId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
@@ -75,6 +79,7 @@ export async function getPendingApprovals(approverId: string) {
 
 // Submits an expense for approval
 export async function submitExpense(id: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('expenses')
     .update({
@@ -95,6 +100,7 @@ export async function updateExpenseStatus(
   status: ExpenseStatus.APPROVED | ExpenseStatus.REJECTED,
   comment?: string
 ) {
+  const supabase = getSupabaseClient();
   const updates: any = {
     status,
     updated_at: new Date().toISOString()
@@ -126,6 +132,7 @@ export async function updateExpenseStatus(
 
 // Deletes a draft expense
 export async function deleteDraftExpense(id: string) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('expenses')
     .delete()

@@ -1,7 +1,21 @@
+/**
+ * ROOT LAYOUT
+ * 
+ * This is the root layout component that wraps all pages.
+ * Handles server-side session initialization and global styles.
+ * 
+ * Dependencies: next/headers, @supabase/auth-helpers-nextjs
+ * Used by: Next.js App Router
+ * 
+ * @author ExpenseFlow Team
+ * @since 2024-01-01
+ */
+
 import './globals.css';
 import { RootLayoutClient } from './root-layout-client';
-import { headers, cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import type { Database } from '@/lib/database.types';
 
 export const metadata = {
   title: 'ExpenseFlow',
@@ -15,7 +29,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = createServerComponentClient<Database>({ cookies });
 
   const {
     data: { session },

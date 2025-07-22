@@ -11,7 +11,7 @@
  * @since 2024-01-01
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export interface Notification {
   id?: string;
@@ -42,6 +42,7 @@ export async function sendNotification(to: string, subject: string, html: string
 }
 
 export async function getUnreadNotifications(userId: string): Promise<Notification[]> {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
@@ -54,6 +55,7 @@ export async function getUnreadNotifications(userId: string): Promise<Notificati
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
@@ -63,6 +65,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<void> {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('notifications')
     .update({ read_at: new Date().toISOString() })

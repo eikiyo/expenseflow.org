@@ -11,7 +11,7 @@
  * @since 2024-01-01
  */
 
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
 const ALLOWED_FILE_TYPES = [
@@ -32,6 +32,12 @@ interface UploadProgress {
   total: number
 }
 
+interface UploadResult {
+  fileUrl: string
+  fileName: string
+  fileType: string
+}
+
 // Validates file type and size
 export function validateFile(file: File): string | null {
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -45,12 +51,15 @@ export function validateFile(file: File): string | null {
   return null
 }
 
-// Uploads a file to Supabase storage
+// Validates and uploads file to Supabase storage bucket
 export async function uploadFile(
-  file: File,
-  userId: string,
-  options?: UploadOptions
-): Promise<{ fileUrl: string; fileName: string; fileType: string }> {
+  file: File, 
+  userId: string, 
+  category: string = 'receipts',
+  options: UploadOptions = {}
+): Promise<UploadResult> {
+  const supabase = getSupabaseClient();
+  
   const error = validateFile(file)
   if (error) throw new Error(error)
 
@@ -87,10 +96,9 @@ export async function uploadFile(
 }
 
 // Downloads a file from Supabase storage
-export async function downloadFile(fileUrl: string): Promise<Blob> {
-  const filePath = fileUrl.split('/').pop()
-  if (!filePath) throw new Error('Invalid file URL')
-
+export async function downloadFile(bucket: string, filePath: string): Promise<Blob | null> {
+  const supabase = getSupabaseClient();
+  
   const { data, error } = await supabase.storage
     .from('expense-receipts')
     .download(filePath)
@@ -101,23 +109,36 @@ export async function downloadFile(fileUrl: string): Promise<Blob> {
   return data
 }
 
-// Deletes a file from Supabase storage
-export async function deleteFile(fileUrl: string): Promise<void> {
-  const filePath = fileUrl.split('/').pop()
-  if (!filePath) throw new Error('Invalid file URL')
+// Gets public URL for a file in storage
+export function getFileUrl(bucket: string, filePath: string): string {
+  const supabase = getSupabaseClient();
+  
+  const { data: { publicUrl } } = supabase.storage
+    .from('expense-receipts')
+    .getPublicUrl(filePath)
 
+  return publicUrl || ''
+}
+
+// Deletes a file from storage
+export async function deleteFile(bucket: string, filePath: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  
   const { error } = await supabase.storage
     .from('expense-receipts')
     .remove([filePath])
 
   if (error) throw error
+  return true
 }
 
-// Lists all files for a user
-export async function listUserFiles(userId: string) {
+// Lists files in a storage bucket
+export async function listFiles(bucket: string, path: string = ''): Promise<any[]> {
+  const supabase = getSupabaseClient();
+  
   const { data, error } = await supabase.storage
     .from('expense-receipts')
-    .list(userId)
+    .list(path)
 
   if (error) throw error
   return data

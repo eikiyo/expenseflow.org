@@ -1,23 +1,23 @@
 /**
  * SUPABASE CLIENT CONFIGURATION
  * 
- * This file sets up the Supabase client and defines database types.
- * Provides typed access to Supabase services.
+ * This file sets up unified Supabase clients for client usage.
+ * Server client is created separately to avoid next/headers import issues.
  * 
- * Dependencies: @supabase/supabase-js
+ * Dependencies: @supabase/auth-helpers-nextjs
  * Used by: All components and services requiring database access
  * 
  * @author ExpenseFlow Team
  * @since 2024-01-01
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from './database.types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Client-side Supabase client
+export const getSupabaseClient = () => {
+  return createClientComponentClient<Database>()
+}
 
 export interface ExpenseUser {
   id: string
@@ -32,6 +32,7 @@ export interface ExpenseUser {
 
 // Get user profile from database
 export async function getUserProfile(userId: string): Promise<ExpenseUser | null> {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -44,6 +45,7 @@ export async function getUserProfile(userId: string): Promise<ExpenseUser | null
 
 // Create user profile in database
 export async function createUserProfile(user: any): Promise<ExpenseUser | null> {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')
     .insert({
@@ -65,6 +67,7 @@ export async function updateUserProfile(
   userId: string,
   updates: Partial<ExpenseUser>
 ): Promise<ExpenseUser | null> {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -83,6 +86,7 @@ export const signInWithGoogle = async () => {
     return { data: null, error: new Error('Cannot sign in during server-side rendering') }
   }
 
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -98,17 +102,20 @@ export const signInWithGoogle = async () => {
 }
 
 export const signOut = async () => {
+  const supabase = getSupabaseClient()
   const { error } = await supabase.auth.signOut()
   return { error }
 }
 
 export const getCurrentUser = async () => {
+  const supabase = getSupabaseClient()
   const { data: { session } } = await supabase.auth.getSession()
   return session?.user || null
 }
 
 // Database Functions
 export const getUserSubmissions = async (userId: string) => {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('expense_submissions')
     .select(`
@@ -129,6 +136,7 @@ export const getUserSubmissions = async (userId: string) => {
 }
 
 export const createExpenseSubmission = async (submission: any) => {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('expense_submissions')
     .insert(submission)
@@ -144,6 +152,7 @@ export const createExpenseSubmission = async (submission: any) => {
 }
 
 export const updateExpenseSubmission = async (id: string, updates: any) => {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('expense_submissions')
     .update(updates)
@@ -161,6 +170,7 @@ export const updateExpenseSubmission = async (id: string, updates: any) => {
 
 // File upload helper
 export const uploadFile = async (bucket: string, path: string, file: File) => {
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase.storage
     .from(bucket)
     .upload(path, file)
@@ -174,6 +184,7 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
 }
 
 export const getPublicUrl = (bucket: string, path: string) => {
+  const supabase = getSupabaseClient()
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(path)
