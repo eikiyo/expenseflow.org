@@ -41,10 +41,12 @@ export function useUserProfile() {
       updated_at: now
     }
 
-    Logger.profile.info('Upserting user profile', {
-      userId: userData.id,
-      email: userData.email,
-      metadata: userData.user_metadata
+    Logger.db.info('Upserting user profile', {
+      meta: {
+        userId: userData.id,
+        email: userData.email,
+        metadata: userData.user_metadata
+      }
     })
 
     // Use upsert to handle both insert and update cases
@@ -59,23 +61,25 @@ export function useUserProfile() {
       .single()
 
     if (error) {
-      Logger.profile.error('Profile upsert failed', {
-        error,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
+      Logger.db.error('Profile upsert failed', {
+        message: error.message,
+        meta: {
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        }
       })
       return null
     }
 
-    Logger.profile.info('Profile upserted successfully', data)
+    Logger.db.info('Profile upserted successfully', { meta: { id: data?.id } })
     return data
   }
 
   // Fetches existing profile from database
   // Returns profile data or null if not found
   const fetchProfile = async (userId: string) => {
-    Logger.profile.info('Fetching user profile', { userId })
+    Logger.db.info('Fetching user profile', { meta: { userId } })
     
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
@@ -87,19 +91,21 @@ export function useUserProfile() {
     if (error) {
       // If profile doesn't exist, that's expected for new users
       if (error.code === 'PGRST116') {
-        Logger.profile.info('No existing profile found - will create new one')
+        Logger.db.info('No existing profile found - will create new one')
       } else {
-        Logger.profile.error('Profile fetch failed', {
-          error,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
+        Logger.db.error('Profile fetch failed', {
+          message: error.message,
+          meta: {
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          }
         })
       }
       return null
     }
 
-    Logger.profile.info('Found existing profile', data)
+    Logger.db.info('Found existing profile', { meta: { id: data?.id } })
     return data
   }
 
@@ -113,9 +119,11 @@ export function useUserProfile() {
       setLoading(true)
       
       try {
-        Logger.profile.debug('Loading profile for user', {
-          userId: user.id,
-          email: user.email
+        Logger.db.debug('Loading profile for user', {
+          meta: {
+            userId: user.id,
+            email: user.email
+          }
         })
 
         // Try to fetch existing profile
@@ -127,8 +135,11 @@ export function useUserProfile() {
         }
         
         setProfile(userProfile)
-      } catch (error) {
-        Logger.profile.error('Error loading profile', { error })
+      } catch (error: any) {
+        Logger.db.error('Error loading profile', { 
+          message: error.message,
+          meta: { userId: user.id }
+        })
       } finally {
         setLoading(false)
       }
