@@ -59,12 +59,8 @@ export default function ExpenseApp() {
       if (code && state) {
         console.log('[OAuth] Detected callback parameters, letting Supabase handle automatically')
         console.log('[OAuth] Code length:', code.length, 'State length:', state.length)
-        // Don't clean up URL immediately - let Supabase process the parameters
-        // Clean up URL after a delay to give Supabase time to process
-        setTimeout(() => {
-          console.log('[OAuth] Cleaning up URL parameters after delay')
-          window.history.replaceState({}, document.title, window.location.pathname)
-        }, 3000)
+        // Clean up URL immediately since we're manually handling the exchange
+        window.history.replaceState({}, document.title, window.location.pathname)
       } else if (error) {
         console.log('[OAuth] Error in callback:', error)
         setAuthError(`OAuth error: ${error}`)
