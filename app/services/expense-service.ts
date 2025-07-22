@@ -1,10 +1,10 @@
 /**
  * EXPENSE SERVICE
  * 
- * This file handles all expense-related database operations using the simplified schema.
- * Uses the new 5-table architecture with JSON data for type-specific information.
+ * This file handles all expense-related database operations using the new unified schema.
+ * Uses the expense_submissions, expense_approvals, and attachments tables.
  * 
- * Dependencies: @supabase/supabase-js, expense types
+ * Dependencies: @supabase/supabase-js, database types
  * Used by: All expense components and API routes
  * 
  * @author ExpenseFlow Team
@@ -13,33 +13,31 @@
 
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
-import type { 
-  ExpenseRecord, 
-  AttachmentRecord, 
-  ApprovalRecord,
-  ExpenseFormData
-} from '@/app/types/expense'
-import { convertExpenseFormToRecord, convertExpenseRecordToForm } from '@/app/types/expense'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
+// Types based on the actual database schema
+export type ExpenseSubmission = Database['public']['Tables']['expense_submissions']['Row']
+export type ExpenseSubmissionInsert = Database['public']['Tables']['expense_submissions']['Insert']
+export type ExpenseSubmissionUpdate = Database['public']['Tables']['expense_submissions']['Update']
+
+export type ExpenseApproval = Database['public']['Tables']['expense_approvals']['Row']
+export type ExpenseApprovalInsert = Database['public']['Tables']['expense_approvals']['Insert']
+
+export type Attachment = Database['public']['Tables']['attachments']['Row']
+export type AttachmentInsert = Database['public']['Tables']['attachments']['Insert']
+
 // Save expense to database
 export async function saveExpense(
-  formData: ExpenseFormData,
-  userId: string
-): Promise<ExpenseRecord | null> {
+  expenseData: ExpenseSubmissionInsert
+): Promise<ExpenseSubmission | null> {
   try {
-    const expenseRecord = convertExpenseFormToRecord(formData, userId)
-    
     const { data, error } = await supabase
-      .from('expenses')
-      .insert({
-        ...expenseRecord,
-        expense_data: expenseRecord.expense_data as any
-      })
+      .from('expense_submissions')
+      .insert(expenseData)
       .select()
       .single()
 
@@ -48,7 +46,7 @@ export async function saveExpense(
       return null
     }
 
-    return data as unknown as ExpenseRecord
+    return data
   } catch (error) {
     console.error('Error in saveExpense:', error)
     return null
@@ -56,19 +54,13 @@ export async function saveExpense(
 }
 
 // Get expense by ID
-export async function getExpenseById(id: string): Promise<ExpenseRecord | null> {
+export async function getExpenseById(id: string): Promise<ExpenseSubmission | null> {
   try {
     const { data, error } = await supabase
-      .from('expenses')
+      .from('expense_submissions')
       .select(`
         *,
-        profiles!expenses_user_id_fkey (
-          id,
-          full_name,
-          email,
-          role
-        ),
-        profiles!expenses_approver_id_fkey (
+        profiles!expense_submissions_user_id_fkey (
           id,
           full_name,
           email,
@@ -83,7 +75,7 @@ export async function getExpenseById(id: string): Promise<ExpenseRecord | null> 
       return null
     }
 
-    return data as unknown as ExpenseRecord
+    return data as ExpenseSubmission & { profiles: any }
   } catch (error) {
     console.error('Error in getExpenseById:', error)
     return null
@@ -93,15 +85,15 @@ export async function getExpenseById(id: string): Promise<ExpenseRecord | null> 
 // Get user expenses
 export async function getUserExpenses(
   userId: string,
-  status?: 'draft' | 'submitted' | 'approved' | 'rejected',
-  type?: 'travel' | 'maintenance' | 'requisition'
-): Promise<ExpenseRecord[]> {
+  status?: string,
+  type?: string
+): Promise<ExpenseSubmission[]> {
   try {
     let query = supabase
-      .from('expenses')
+      .from('expense_submissions')
       .select(`
         *,
-        profiles!expenses_user_id_fkey (
+        profiles!expense_submissions_user_id_fkey (
           id,
           full_name,
           email,
@@ -116,7 +108,7 @@ export async function getUserExpenses(
     }
 
     if (type) {
-      query = query.eq('type', type)
+      query = query.eq('expense_type', type)
     }
 
     const { data, error } = await query
@@ -126,7 +118,7 @@ export async function getUserExpenses(
       return []
     }
 
-    return data as unknown as ExpenseRecord[]
+    return data as ExpenseSubmission[]
   } catch (error) {
     console.error('Error in getUserExpenses:', error)
     return []
@@ -134,15 +126,13 @@ export async function getUserExpenses(
 }
 
 // Get expenses for approval (for managers/admins)
-export async function getExpensesForApproval(
-  approverId: string
-): Promise<ExpenseRecord[]> {
+export async function getExpensesForApproval(): Promise<ExpenseSubmission[]> {
   try {
     const { data, error } = await supabase
-      .from('expenses')
+      .from('expense_submissions')
       .select(`
         *,
-        profiles!expenses_user_id_fkey (
+        profiles!expense_submissions_user_id_fkey (
           id,
           full_name,
           email,
@@ -151,14 +141,14 @@ export async function getExpensesForApproval(
         )
       `)
       .eq('status', 'submitted')
-      .order('submitted_at', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (error) {
       console.error('Error fetching expenses for approval:', error)
       return []
     }
 
-    return data as unknown as ExpenseRecord[]
+    return data as ExpenseSubmission[]
   } catch (error) {
     console.error('Error in getExpensesForApproval:', error)
     return []
@@ -172,10 +162,9 @@ export async function submitExpense(
 ): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('expenses')
+      .from('expense_submissions')
       .update({
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
+        status: 'submitted'
       })
       .eq('id', expenseId)
       .eq('user_id', userId)
@@ -197,17 +186,14 @@ export async function approveExpense(
   expenseId: string,
   approverId: string,
   action: 'approved' | 'rejected',
-  notes?: string
+  comments?: string
 ): Promise<boolean> {
   try {
-    // Start a transaction
+    // Update expense status
     const { error: expenseError } = await supabase
-      .from('expenses')
+      .from('expense_submissions')
       .update({
-        status: action,
-        approved_at: new Date().toISOString(),
-        approver_id: approverId,
-        approval_notes: notes
+        status: action
       })
       .eq('id', expenseId)
 
@@ -218,12 +204,12 @@ export async function approveExpense(
 
     // Create approval record
     const { error: approvalError } = await supabase
-      .from('approvals')
+      .from('expense_approvals')
       .insert({
-        expense_id: expenseId,
+        submission_id: expenseId,
         approver_id: approverId,
-        action,
-        notes
+        status: action,
+        comments
       })
 
     if (approvalError) {
@@ -242,7 +228,7 @@ export async function approveExpense(
 export async function uploadAttachment(
   expenseId: string,
   file: File
-): Promise<AttachmentRecord | null> {
+): Promise<Attachment | null> {
   try {
     // Upload file to storage
     const fileName = `${expenseId}/${Date.now()}-${file.name}`
@@ -255,20 +241,15 @@ export async function uploadAttachment(
       return null
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('expense-attachments')
-      .getPublicUrl(fileName)
-
     // Create attachment record
     const { data, error } = await supabase
       .from('attachments')
       .insert({
         expense_id: expenseId,
-        filename: file.name,
+        file_name: file.name,
         file_path: fileName,
         file_size: file.size,
-        content_type: file.type
+        file_type: file.type
       })
       .select()
       .single()
@@ -288,7 +269,7 @@ export async function uploadAttachment(
 // Get expense attachments
 export async function getExpenseAttachments(
   expenseId: string
-): Promise<AttachmentRecord[]> {
+): Promise<Attachment[]> {
   try {
     const { data, error } = await supabase
       .from('attachments')
@@ -358,20 +339,20 @@ export async function deleteAttachment(
 // Get expense approvals
 export async function getExpenseApprovals(
   expenseId: string
-): Promise<ApprovalRecord[]> {
+): Promise<ExpenseApproval[]> {
   try {
     const { data, error } = await supabase
-      .from('approvals')
+      .from('expense_approvals')
       .select(`
         *,
-        profiles!approvals_approver_id_fkey (
+        profiles!expense_approvals_approver_id_fkey (
           id,
           full_name,
           email,
           role
         )
       `)
-      .eq('expense_id', expenseId)
+      .eq('submission_id', expenseId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -379,7 +360,7 @@ export async function getExpenseApprovals(
       return []
     }
 
-    return data as ApprovalRecord[]
+    return data as ExpenseApproval[]
   } catch (error) {
     console.error('Error in getExpenseApprovals:', error)
     return []
@@ -389,15 +370,12 @@ export async function getExpenseApprovals(
 // Update expense
 export async function updateExpense(
   expenseId: string,
-  updates: Partial<ExpenseRecord>
-): Promise<ExpenseRecord | null> {
+  updates: ExpenseSubmissionUpdate
+): Promise<ExpenseSubmission | null> {
   try {
     const { data, error } = await supabase
-      .from('expenses')
-      .update({
-        ...updates,
-        expense_data: updates.expense_data as any
-      })
+      .from('expense_submissions')
+      .update(updates)
       .eq('id', expenseId)
       .select()
       .single()
@@ -407,7 +385,7 @@ export async function updateExpense(
       return null
     }
 
-    return data as unknown as ExpenseRecord
+    return data
   } catch (error) {
     console.error('Error in updateExpense:', error)
     return null
@@ -421,7 +399,7 @@ export async function deleteExpense(
 ): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('expenses')
+      .from('expense_submissions')
       .delete()
       .eq('id', expenseId)
       .eq('user_id', userId)
@@ -443,8 +421,8 @@ export async function deleteExpense(
 export async function getExpenseStats(userId: string) {
   try {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('status, total_amount, type')
+      .from('expense_submissions')
+      .select('status, total_amount, expense_type')
       .eq('user_id', userId)
 
     if (error) {
@@ -459,7 +437,7 @@ export async function getExpenseStats(userId: string) {
         return acc
       }, {} as Record<string, number>),
       byType: data.reduce((acc, exp) => {
-        acc[exp.type] = (acc[exp.type] || 0) + exp.total_amount
+        acc[exp.expense_type] = (acc[exp.expense_type] || 0) + exp.total_amount
         return acc
       }, {} as Record<string, number>),
       count: data.length
