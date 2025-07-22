@@ -1,4 +1,40 @@
--- Create error_alerts table if it doesn't exist
+-- Create error_logs table first
+CREATE TABLE IF NOT EXISTS error_logs (
+  id SERIAL PRIMARY KEY,
+  function_name VARCHAR NOT NULL,
+  error_type VARCHAR NOT NULL,
+  error_message TEXT NOT NULL,
+  error_stack TEXT,
+  context_data JSONB,
+  severity VARCHAR NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  user_agent TEXT,
+  ip_address INET,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS on error_logs
+ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can access error logs
+CREATE POLICY admin_error_logs ON error_logs
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+      AND role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid()
+      AND role = 'admin'
+    )
+  );
+
+-- Create error_alerts table that references error_logs
 CREATE TABLE IF NOT EXISTS error_alerts (
   id SERIAL PRIMARY KEY,
   error_log_id INTEGER REFERENCES error_logs(id),
