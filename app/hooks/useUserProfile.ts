@@ -20,75 +20,11 @@ import Logger from '@/app/utils/logger'
 export function useUserProfile() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [isCreating, setIsCreating] = useState(false); // Add isCreating state
-
-  // Creates or updates a user profile with unified fields
-  // Returns the profile or null if operation fails
-  const createProfile = async (userData: any) => {
-    if (!userData || isCreating) return null; // Prevent concurrent creations
-    setIsCreating(true); // Set lock
-
-    const now = new Date().toISOString()
-    const profileData = {
-      id: userData.id,
-      email: userData.email || '',
-      full_name: userData.user_metadata?.full_name || userData.email?.split('@')[0] || 'New User',
-      avatar_url: userData.user_metadata?.avatar_url || null,
-      department: null,
-      role: 'user' as const,
-      manager_id: null,
-      expense_limit: 10000,
-      // New unified fields
-      employee_id: `EMP${Date.now()}`, // Generate unique employee ID
-      phone: null,
-      address: null,
-      monthly_budget: 50000,
-      single_transaction_limit: 10000,
-      profile_picture_url: userData.user_metadata?.avatar_url || null,
-      is_active: true,
-      created_at: now,
-      updated_at: now
-    }
-
-    Logger.db.info('Upserting user profile', {
-      meta: {
-        userId: userData.id,
-        email: userData.email,
-        metadata: userData.user_metadata
-      }
-    })
-
-    // Use upsert to handle both insert and update cases
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(profileData, {
-        onConflict: 'id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single()
-
-    if (error) {
-      Logger.db.error('Profile upsert failed', {
-        message: error.message,
-        meta: {
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        }
-      })
-      return null
-    }
-
-    Logger.db.info('Profile upserted successfully', { meta: { id: data?.id } })
-    setIsCreating(false); // Release lock
-    return data
-  }
+  const [loading, setLoading] = useState(true) // Start with loading true
 
   // Fetches existing profile from database
-  // Returns profile data or null if not found
+  // The profile is now created automatically by a database trigger
+  // on new user signup (handle_new_user function).
   const fetchProfile = async (userId: string) => {
     Logger.db.info('Fetching user profile', { meta: { userId } })
     
@@ -100,9 +36,11 @@ export function useUserProfile() {
       .single()
 
     if (error) {
-      // If profile doesn't exist, that's expected for new users
+      // If profile doesn't exist, log it but don't automatically create
       if (error.code === 'PGRST116') {
-        Logger.db.info('No existing profile found - will create new one')
+        Logger.db.warn('Profile not found for user. It should have been created by a trigger.', { 
+          meta: { userId } 
+        })
       } else {
         Logger.db.error('Profile fetch failed', {
           message: error.message,
@@ -123,12 +61,12 @@ export function useUserProfile() {
   useEffect(() => {
     if (!user) {
       setProfile(null)
+      setLoading(false)
       return
     }
 
     let isCancelled = false;
     const loadProfile = async () => {
-      if (isCreating) return; // Prevent multiple concurrent loads
       setLoading(true)
       
       try {
@@ -140,12 +78,7 @@ export function useUserProfile() {
         })
 
         // Try to fetch existing profile
-        let userProfile = await fetchProfile(user.id)
-        
-        // Create/update profile if needed
-        if (!userProfile && !isCancelled) {
-          userProfile = await createProfile(user)
-        }
+        const userProfile = await fetchProfile(user.id)
         
         if (!isCancelled) {
           setProfile(userProfile)
@@ -167,7 +100,7 @@ export function useUserProfile() {
     return () => {
       isCancelled = true;
     }
-  }, [user, isCreating])
+  }, [user])
 
   return { profile, loading }
 } 

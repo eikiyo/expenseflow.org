@@ -1,16 +1,3 @@
-/**
- * DATABASE TYPES
- * 
- * This file contains TypeScript definitions for our Supabase database schema.
- * Generated types for tables, views, and stored procedures.
- * 
- * Dependencies: None
- * Used by: API routes and database operations
- * 
- * @author ExpenseFlow Team
- * @since 2024-01-01
- */
-
 export type Json =
   | string
   | number
@@ -19,202 +6,178 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      expenses: {
+      expense_approvals: {
         Row: {
+          approver_id: string
+          comments: string | null
+          created_at: string | null
           id: string
-          user_id: string
-          expense_number: string
-          type: 'travel' | 'maintenance' | 'requisition'
-          status: 'draft' | 'submitted' | 'approved' | 'rejected'
-          title: string
-          description: string
-          total_amount: number
-          currency: string
-          expense_data: Json
-          submitted_at: string | null
-          approved_at: string | null
-          approver_id: string | null
-          approval_notes: string | null
-          created_at: string
-          updated_at: string
+          status: string
+          submission_id: string
         }
         Insert: {
+          approver_id: string
+          comments?: string | null
+          created_at?: string | null
           id?: string
-          user_id: string
-          expense_number?: string
-          type: 'travel' | 'maintenance' | 'requisition'
-          status?: 'draft' | 'submitted' | 'approved' | 'rejected'
-          title: string
-          description: string
-          total_amount: number
-          currency?: string
-          expense_data?: Json
-          submitted_at?: string | null
-          approved_at?: string | null
-          approver_id?: string | null
-          approval_notes?: string | null
-          created_at?: string
-          updated_at?: string
+          status: string
+          submission_id: string
         }
         Update: {
+          approver_id?: string
+          comments?: string | null
+          created_at?: string | null
           id?: string
-          user_id?: string
-          expense_number?: string
-          type?: 'travel' | 'maintenance' | 'requisition'
-          status?: 'draft' | 'submitted' | 'approved' | 'rejected'
-          title?: string
-          description?: string
-          total_amount?: number
-          currency?: string
-          expense_data?: Json
-          submitted_at?: string | null
-          approved_at?: string | null
-          approver_id?: string | null
-          approval_notes?: string | null
-          created_at?: string
-          updated_at?: string
+          status?: string
+          submission_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "expenses_user_id_fkey"
+            foreignKeyName: "expense_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_approvals_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "expense_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_submissions: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          expense_type: string
+          id: string
+          status: string
+          submission_data: Json
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_type: string
+          id?: string
+          status?: string
+          submission_data: Json
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_type?: string
+          id?: string
+          status?: string
+          submission_data?: Json
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_submissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "expenses_approver_id_fkey"
-            columns: ["approver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      attachments: {
-        Row: {
-          id: string
-          expense_id: string
-          filename: string
-          file_path: string
-          file_size: number
-          content_type: string
-          uploaded_at: string
-        }
-        Insert: {
-          id?: string
-          expense_id: string
-          filename: string
-          file_path: string
-          file_size: number
-          content_type: string
-          uploaded_at?: string
-        }
-        Update: {
-          id?: string
-          expense_id?: string
-          filename?: string
-          file_path?: string
-          file_size?: number
-          content_type?: string
-          uploaded_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "attachments_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      approvals: {
-        Row: {
-          id: string
-          expense_id: string
-          approver_id: string
-          action: 'approved' | 'rejected'
-          notes: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          expense_id: string
-          approver_id: string
-          action: 'approved' | 'rejected'
-          notes?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          expense_id?: string
-          approver_id?: string
-          action?: 'approved' | 'rejected'
-          notes?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "approvals_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvals_approver_id_fkey"
-            columns: ["approver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       profiles: {
         Row: {
-          id: string
-          email: string
-          full_name: string
+          address: string | null
           avatar_url: string | null
-          department: string | null
-          role: 'user' | 'manager' | 'admin'
-          manager_id: string | null
-          approval_limit: number | null
-          monthly_budget: number | null
-          is_active: boolean
           created_at: string
+          department: string | null
+          email: string
+          employee_id: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          manager_id: string | null
+          monthly_budget: number | null
+          phone: string | null
+          role: string
+          single_transaction_limit: number | null
           updated_at: string
         }
         Insert: {
-          id: string
-          email: string
-          full_name: string
+          address?: string | null
           avatar_url?: string | null
-          department?: string | null
-          role?: 'user' | 'manager' | 'admin'
-          manager_id?: string | null
-          approval_limit?: number | null
-          monthly_budget?: number | null
-          is_active?: boolean
           created_at?: string
+          department?: string | null
+          email: string
+          employee_id?: string | null
+          full_name: string
+          id: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          monthly_budget?: number | null
+          phone?: string | null
+          role?: string
+          single_transaction_limit?: number | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          email?: string
-          full_name?: string
+          address?: string | null
           avatar_url?: string | null
-          department?: string | null
-          role?: 'user' | 'manager' | 'admin'
-          manager_id?: string | null
-          approval_limit?: number | null
-          monthly_budget?: number | null
-          is_active?: boolean
           created_at?: string
+          department?: string | null
+          email?: string
+          employee_id?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          monthly_budget?: number | null
+          phone?: string | null
+          role?: string
+          single_transaction_limit?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -224,45 +187,7 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
-        ]
-      }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          title: string
-          message: string
-          type: 'info' | 'success' | 'warning' | 'error'
-          is_read: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          title: string
-          message: string
-          type?: 'info' | 'success' | 'warning' | 'error'
-          is_read?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          title?: string
-          message?: string
-          type?: 'info' | 'success' | 'warning' | 'error'
-          is_read?: boolean
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+          },
         ]
       }
     }
@@ -273,10 +198,188 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      approval_action: "approve" | "reject" | "request_changes"
+      expense_status:
+        | "draft"
+        | "submitted"
+        | "pending_manager"
+        | "pending_finance"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+      expense_type: "travel" | "maintenance" | "requisition"
+      maintenance_category: "charges" | "purchases" | "repairs"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snacks"
+      transport_method:
+        | "van"
+        | "rickshaw"
+        | "boat"
+        | "cng"
+        | "train"
+        | "plane"
+        | "launch"
+        | "ferry"
+        | "bike"
+        | "car"
+      user_role: "employee" | "manager" | "finance" | "admin"
+      vehicle_ownership: "own" | "rental" | "public"
     }
     CompositeTypes: {
       [_ in never]: never
     }
   }
-} 
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      approval_action: ["approve", "reject", "request_changes"],
+      expense_status: [
+        "draft",
+        "submitted",
+        "pending_manager",
+        "pending_finance",
+        "approved",
+        "rejected",
+        "cancelled",
+      ],
+      expense_type: ["travel", "maintenance", "requisition"],
+      maintenance_category: ["charges", "purchases", "repairs"],
+      meal_type: ["breakfast", "lunch", "dinner", "snacks"],
+      transport_method: [
+        "van",
+        "rickshaw",
+        "boat",
+        "cng",
+        "train",
+        "plane",
+        "launch",
+        "ferry",
+        "bike",
+        "car",
+      ],
+      user_role: ["employee", "manager", "finance", "admin"],
+      vehicle_ownership: ["own", "rental", "public"],
+    },
+  },
+} as const
