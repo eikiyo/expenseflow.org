@@ -1,22 +1,32 @@
 /**
  * SUPABASE CLIENT CONFIGURATION
  * 
- * This file sets up unified Supabase clients for client usage.
- * Server client is created separately to avoid next/headers import issues.
+ * This file sets up unified Supabase clients using the SSR package.
+ * Uses @supabase/ssr for better session handling and cookie compatibility.
  * 
- * Dependencies: @supabase/auth-helpers-nextjs
+ * Dependencies: @supabase/ssr
  * Used by: All components and services requiring database access
  * 
  * @author ExpenseFlow Team
  * @since 2024-01-01
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 
-// Client-side Supabase client
+// Client-side Supabase client with error checking
 export const getSupabaseClient = () => {
-  return createClientComponentClient<Database>()
+  try {
+    const client = createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    console.log('✅ Supabase browser client created successfully');
+    return client;
+  } catch (error) {
+    console.error('❌ Failed to create Supabase client:', error);
+    throw error;
+  }
 }
 
 export interface ExpenseUser {
@@ -86,11 +96,17 @@ export const signInWithGoogle = async () => {
     return { data: null, error: new Error('Cannot sign in during server-side rendering') }
   }
 
+  // Determine the correct redirect URL based on environment
+  const currentOrigin = window.location.origin;
+  const redirectUrl = `${currentOrigin}/auth/callback`;
+  
+  console.log('🔗 OAuth redirect URL:', redirectUrl);
+
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`, // Use proper callback route
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',

@@ -4,7 +4,7 @@ import { AuthProvider } from './providers/auth-provider';
 import { ExpenseProvider } from './providers/expense-provider';
 import { RouteGuard } from './components/auth/RouteGuard';
 import { Toaster } from 'react-hot-toast';
-import type { Session } from '@supabase/auth-helpers-nextjs';
+import type { Session } from '@supabase/supabase-js';
 
 interface RootLayoutClientProps {
   children: React.ReactNode;

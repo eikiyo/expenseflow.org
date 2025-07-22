@@ -25,6 +25,8 @@ export function LoginForm() {
   const [logoError, setLogoError] = useState(false)
   const [googleLogoError, setGoogleLogoError] = useState(false)
 
+  console.log('🔐 LoginForm component rendering');
+
   const handleGoogleSignIn = async () => {
     setLoading(true)
     setError('')

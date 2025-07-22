@@ -2,9 +2,9 @@
  * AUTH PROVIDER
  * 
  * This component manages authentication state and user profile data.
- * Provides auth context to the entire application with proper session handling.
+ * Uses @supabase/ssr for better session handling and cookie compatibility.
  * 
- * Dependencies: @supabase/auth-helpers-nextjs, react
+ * Dependencies: @supabase/ssr, react
  * Used by: Root layout client
  * 
  * @author ExpenseFlow Team
@@ -13,10 +13,10 @@
 
 'use client';
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
-import type { User, Session } from '@supabase/auth-helpers-nextjs';
+import type { User, Session } from '@supabase/supabase-js';
 import type { ExpenseUser } from '@/lib/supabase';
 
 interface AuthContextType {
@@ -39,13 +39,41 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   
+  // Check environment variables
+  console.log('🔧 Environment check:', {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasSupabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+  });
+  
   // Get single supabase client instance
   const supabase = getSupabaseClient();
+
+  // Clear potentially corrupted auth cookies
+  const clearAuthCookies = () => {
+    try {
+      // Clear various auth-related cookies that might be corrupted
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        if (name.startsWith('sb-') || name.includes('supabase') || name.includes('auth')) {
+          console.log('🧹 Clearing potentially corrupted cookie:', name);
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      });
+    } catch (error) {
+      console.log('🤷 Could not clear cookies:', error);
+    }
+  };
 
   useEffect(() => {
     // Initialize auth state with server session
     const initializeAuth = async () => {
       console.log('🔄 Initializing auth...', { initialSession: !!initialSession });
+      
+      // Clear potentially corrupted cookies first
+      clearAuthCookies();
+      
       try {
         // If we have an initial session, fetch the user profile
         if (initialSession?.user) {
@@ -55,7 +83,9 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
         } else {
           console.log('🔍 No initial session, checking client session...');
           // If no initial session, check client session
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error } = await supabase.auth.getSession();
+          console.log('📱 Client session check result:', { session: !!session, error });
+          
           if (session?.user) {
             console.log('✅ Found client session:', session.user.id);
             setUser(session.user);
@@ -72,16 +102,26 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
       }
     };
 
-    initializeAuth();
+    console.log('🚀 Starting auth initialization...');
+    initializeAuth().catch((error) => {
+      console.error('💥 Failed to initialize auth:', error);
+      setLoading(false);
+    });
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user?.id);
+      console.log('🔄 Auth state changed:', event, {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        userEmail: session?.user?.email
+      });
       
       if (session?.user) {
+        console.log('✅ Setting user from auth state change');
         setUser(session.user);
         await fetchUserProfile(session.user);
       } else {
+        console.log('❌ No session in auth state change, clearing user');
         setUser(null);
         setUserProfile(null);
       }
@@ -93,6 +133,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
     });
 
     return () => {
+      console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, [initialSession, supabase, router]);
@@ -100,6 +141,13 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
   // Fetch user profile helper function
   const fetchUserProfile = async (authUser: User) => {
     console.log('🔄 Fetching user profile for:', authUser.id);
+    console.log('👤 Auth user data:', {
+      id: authUser.id,
+      email: authUser.email,
+      fullName: authUser.user_metadata?.full_name,
+      avatar: authUser.user_metadata?.avatar_url
+    });
+    
     try {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -110,76 +158,88 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
       if (profileError) {
         console.error('❌ Error fetching user profile:', profileError);
         
-        // If profiles table doesn't exist or user profile doesn't exist, create a mock profile
-        if (profileError.code === 'PGRST116' || profileError.code === '42P01') {
-          console.log('🔄 Creating mock profile from auth user data...');
-          const mockProfile: ExpenseUser = {
+        // If user profile doesn't exist (PGRST116), create a new one
+        if (profileError.code === 'PGRST116') {
+          console.log('🆕 User profile not found, creating new profile for first-time user...');
+          
+          const newProfileData = {
             id: authUser.id,
             email: authUser.email || '',
-            full_name: authUser.user_metadata?.full_name || authUser.email || 'User',
-            avatar_url: authUser.user_metadata?.avatar_url,
-            role: 'user',
-            department: undefined,
-            manager_id: undefined,
-            expense_limit: undefined
+            full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+            avatar_url: authUser.user_metadata?.avatar_url || null,
+            role: 'user' as const,
+            department: null,
+            manager_id: null,
+            expense_limit: 0
           };
-          console.log('✅ Created mock profile:', mockProfile);
-          setUserProfile(mockProfile);
-          return;
-        }
-
-        // Try to create profile if table exists but user doesn't have one
-        if (profileError.code === 'PGRST116') {
-          console.log('🔄 Creating new profile...');
+          
+          console.log('📝 Creating profile with data:', newProfileData);
+          
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
-            .insert({
-              id: authUser.id,
-              email: authUser.email || '',
-              full_name: authUser.user_metadata?.full_name || authUser.email || '',
-              avatar_url: authUser.user_metadata?.avatar_url,
-              role: 'user'
-            })
+            .insert(newProfileData)
             .select()
             .single();
 
           if (createError) {
             console.error('❌ Error creating user profile:', createError);
-            // Fallback to mock profile
+            console.error('💥 Create error details:', createError.details, createError.hint);
+            
+            // Fallback to mock profile if database creation fails
+            console.log('🔄 Using fallback mock profile...');
             const mockProfile: ExpenseUser = {
               id: authUser.id,
               email: authUser.email || '',
-              full_name: authUser.user_metadata?.full_name || authUser.email || 'User',
+              full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
               avatar_url: authUser.user_metadata?.avatar_url,
               role: 'user',
               department: undefined,
               manager_id: undefined,
               expense_limit: undefined
             };
+            console.log('✅ Using mock profile:', mockProfile);
             setUserProfile(mockProfile);
+            return;
           } else {
-            console.log('✅ Created new profile:', newProfile);
+            console.log('✅ Successfully created new profile:', newProfile);
             setUserProfile(newProfile);
+            return;
           }
         }
+        
+        // For other errors (like table doesn't exist), use mock profile
+        console.log('🔄 Using mock profile due to database error...');
+        const mockProfile: ExpenseUser = {
+          id: authUser.id,
+          email: authUser.email || '',
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+          avatar_url: authUser.user_metadata?.avatar_url,
+          role: 'user',
+          department: undefined,
+          manager_id: undefined,
+          expense_limit: undefined
+        };
+        console.log('✅ Using mock profile:', mockProfile);
+        setUserProfile(mockProfile);
+        return;
       } else {
         console.log('✅ Found existing profile:', profile);
         setUserProfile(profile);
       }
     } catch (error) {
-      console.error('❌ Error in fetchUserProfile:', error);
-      // Fallback to mock profile on any error
+      console.error('❌ Unexpected error in fetchUserProfile:', error);
+      // Final fallback to mock profile
       const mockProfile: ExpenseUser = {
         id: authUser.id,
         email: authUser.email || '',
-        full_name: authUser.user_metadata?.full_name || authUser.email || 'User',
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
         avatar_url: authUser.user_metadata?.avatar_url,
         role: 'user',
         department: undefined,
         manager_id: undefined,
         expense_limit: undefined
       };
-      console.log('✅ Using fallback mock profile:', mockProfile);
+      console.log('✅ Using final fallback mock profile:', mockProfile);
       setUserProfile(mockProfile);
     }
   };

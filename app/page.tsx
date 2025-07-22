@@ -17,6 +17,7 @@ export default function ExpenseSubmissionPlatform() {
   // Debug logging
   console.log('🔍 Main page render:', { 
     authUser: !!authUser, 
+    authUserId: authUser?.id,
     userProfile: !!userProfile, 
     loading,
     userEmail: authUser?.email 
@@ -33,11 +34,23 @@ export default function ExpenseSubmissionPlatform() {
 
   // Show login if not authenticated
   if (!authUser || !userProfile) {
-    console.log('🔐 Showing login form - no auth user or profile');
-    return <LoginForm />
+    console.log('🔐 Showing login form - no auth user or profile', {
+      hasAuthUser: !!authUser,
+      hasUserProfile: !!userProfile
+    });
+    
+    // Test rendering with a simple div first
+    return (
+      <div>
+        <div style={{ padding: '20px', backgroundColor: 'red', color: 'white' }}>
+          DEBUG: Login form should render here
+        </div>
+        <LoginForm />
+      </div>
+    );
   }
 
-  console.log('✅ Showing dashboard for authenticated user');
+  console.log('✅ Showing dashboard for authenticated user:', authUser.id);
 
   // Handle different views
   const renderCurrentView = () => {

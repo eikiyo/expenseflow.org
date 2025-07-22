@@ -2,9 +2,9 @@
  * ROOT LAYOUT
  * 
  * This is the root layout component that wraps all pages.
- * Handles server-side session initialization and global styles.
+ * Handles server-side session initialization using @supabase/ssr.
  * 
- * Dependencies: next/headers, @supabase/auth-helpers-nextjs
+ * Dependencies: next/headers, @supabase/ssr
  * Used by: Next.js App Router
  * 
  * @author ExpenseFlow Team
@@ -13,7 +13,7 @@
 
 import './globals.css';
 import { RootLayoutClient } from './root-layout-client';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/database.types';
 
@@ -29,7 +29,30 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const cookieStore = await cookies();
+  
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  );
 
   const {
     data: { session },
